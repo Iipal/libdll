@@ -6,6 +6,7 @@
 # include <stdbool.h>
 # include <assert.h>
 # include <stdlib.h>
+# include <string.h>
 
 # define __dll_is_bit(bits, bit) (((bits) & (bit)) == (bit))
 
@@ -23,6 +24,12 @@
  * Do not print any error-message for object
  */
 # define DLL_BIT_EQUIET 2
+
+/**
+ * Duplicating a 'void*' what passed in dll_new\dll_pushfront\dll_pushback and free it when deleting
+ * \warning { ITS NOT SAFE TO USE IT, allocate memory by your own }
+ */
+# define DLL_BIT_DUP 4
 
 /**
  * Default behavior for list
@@ -72,7 +79,16 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
 })
 
 /**
- * Create new token
+ * Create a duplicate \param size bytes of \param mem
+ */
+void	*__dll_memdup(const void *restrict mem, size_t size) {
+	void	*dup;
+	assert((dup = calloc(1, size)));
+	return memcpy(dup, mem, size);
+}
+
+/**
+ * Create new object
  * \param _data: void*
  * \param _size: size_t: size of _data
  * \param _bits: dll_bits_t
@@ -82,6 +98,8 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
 	dll_obj_t *restrict __out = NULL; \
 	assert((__out = calloc(1, sizeof(*__out)))); \
 	__out->data = (void *restrict)(_data); \
+	if (__dll_is_bit((_bits), DLL_BIT_DUP)) \
+		__out->data = __dll_memdup(_data, _size);\
 	__out->data_size = (size_t)(_size); \
 	__out->bits = (dll_bits_t)(_bits); \
 	__out; \
@@ -99,17 +117,19 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
 })
 
 /**
- * Free given token
- * \param _fdll: dll_obj_t*
+ * Free given object
+ * \param _dll_obj: dll_obj_t*
  */
-# define dll_freetok(_fdll) __extension__({ \
-	__typeof__(_fdll) __fdll = _fdll; \
-	free(__fdll); \
-	__fdll = NULL; \
+# define dll_freeobj(_dll_obj) __extension__({ \
+	__typeof__(_dll_obj) __fdll_obj = (_dll_obj); \
+	if (__dll_is_bit(__fdll_obj->bits, DLL_BIT_DUP)) \
+		free(__fdll_obj->data); \
+	free(__fdll_obj); \
+	__fdll_obj = NULL; \
 })
 
 /**
- * Delete links to given token
+ * Delete links to given object
  * \param _dll: dll_t*
  * \param _dll_obj: dll_obj_t*
  */
@@ -125,7 +145,7 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
 		__dll_obj->next->prev = __dll_obj->prev; \
 	} \
 	--__dll->objs_count; \
-	dll_freetok(__dll_obj); \
+	dll_freeobj(__dll_obj); \
 })
 
 /**
