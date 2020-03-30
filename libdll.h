@@ -12,31 +12,63 @@
 # define __dll_attr_align __attribute__((aligned(__BIGGEST_ALIGNMENT__)))
 
 /**
+ * Default behavior for object
+ */
+# define DLL_BIT_DFLT 0
+/**
  * For all functions which call an object handler - if the handler returns a negative value it's will be ignored
  */
 # define DLL_BIT_EIGN 1
+/**
+ * Do not print any error-message for object
+ */
+# define DLL_BIT_EQUIET 2
 
-typedef unsigned int dll_obj_bits_t;
+
+/**
+ * Default behavior for list
+ */
+# define DLL_GBIT_DFLT 0
+
+/**
+ * Do not print output order and objects count in linked list in dll_print* function
+ */
+# define DLL_GBIT_QUIET 1
+
+/**
+ * All macroses specified for all objects in linked list has prefix:
+ * DLL_GBIT_* (use only with dll_init)
+ * All macroses specified for only 1 object in linked list has prefix:
+ * DLL_BIT_* (use only with dll_new, dll_push*)
+ */
+typedef unsigned int dll_bits_t;
 
 typedef struct s_dll_obj {
 	struct s_dll_obj *restrict	next;
 	struct s_dll_obj *restrict	prev;
 	void *restrict	data;
 	size_t	data_size;
-	dll_obj_bits_t	bits;
+	dll_bits_t	bits;
 } __dll_attr_align dll_obj_t;
 
 typedef struct s_dll {
 	dll_obj_t *restrict	head;
 	dll_obj_t *restrict	last;
 	size_t	objs_count;
+	dll_bits_t	bits;
 } __dll_attr_align dll_t;
 
 typedef int (*f_dll_obj_handler)(const void *restrict);
 
-# define dll_init() __extension__({ \
+/**
+ * Allocate new list
+ * For specifying behavior for all objects - set \param _bits using DLL_GBIT*
+ * \return dll_t*
+ */
+# define dll_init(_bits) __extension__({ \
 	dll_t *restrict	__out = NULL; \
 	assert((__out = calloc(1, sizeof(*__out)))); \
+	__out->bits = _bits; \
 	__out; \
 })
 
@@ -44,7 +76,7 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
  * Create new token
  * \param _data: void*
  * \param _size: size_t: size of _data
- * \param _bits: dll_obj_bits_t
+ * \param _bits: dll_bits_t
  * \return dll_obj_t*
  */
 # define dll_new(_data, _size, _bits) __extension__({ \
@@ -52,7 +84,7 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
 	assert((__out = calloc(1, sizeof(*__out)))); \
 	__out->data = (void *restrict)(_data); \
 	__out->data_size = (size_t)(_size); \
-	__out->bits = (dll_obj_bits_t)(_bits); \
+	__out->bits = (dll_bits_t)(_bits); \
 	__out; \
 })
 
@@ -127,7 +159,7 @@ static inline dll_obj_t	*dll_pushfronto(dll_t *restrict dll,
 static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
 		void *restrict data,
 		size_t data_size,
-		dll_obj_bits_t obj_type) {
+		dll_bits_t obj_type) {
 	return dll_pushfronto(dll, dll_new(data, data_size, obj_type));
 }
 
@@ -156,7 +188,7 @@ static inline dll_obj_t	*dll_pushbacko(dll_t *restrict dll,
 static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 		void *restrict data,
 		size_t data_size,
-		dll_obj_bits_t obj_type) {
+		dll_bits_t obj_type) {
 	return dll_pushbacko(dll, dll_new(data, data_size, obj_type));
 }
 
@@ -165,9 +197,14 @@ static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
 	return fn_print(dll_obj->data);
 }
 
-# define __dll_print_logic(_fn, _i) __extension__({ \
-	if (0 > dll_printone(_i, _fn) && !__dll_is_bit((_i)->bits, DLL_BIT_EIGN)) \
+# define __dll_print_logic(_fn_name, _fn, _i) __extension__({ \
+	if (0 > dll_printone(_i, _fn) \
+	&& !__dll_is_bit((_i)->bits, DLL_BIT_EIGN)) { \
+		if (!__dll_is_bit((_i)->bits, DLL_BIT_EQUIET)) \
+			fprintf(stderr, #_fn_name ": output processing function " \
+										"return negative value\n"); \
 		break ; \
+	} \
 })
 
 /**
@@ -176,9 +213,10 @@ static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
  */
 static inline void	dll_print(const dll_t *restrict dll,
 		f_dll_obj_handler fn_print) {
-	printf("%zu elements\nFrom begin:\n", dll_getsize(dll));
+	if (!__dll_is_bit(dll->bits, DLL_GBIT_QUIET))
+		printf("%zu elements\nFrom begin:\n", dll_getsize(dll));
 	for (dll_obj_t *restrict i = dll->head; i; i = i->next) {
-		__dll_print_logic(fn_print, i);
+		__dll_print_logic(dll_print, fn_print, i);
 	}
 }
 
@@ -188,19 +226,23 @@ static inline void	dll_print(const dll_t *restrict dll,
  */
 static inline void	dll_printr(const dll_t *restrict dll,
 		f_dll_obj_handler fn_print) {
-	printf("%zu elements\nFrom end:\n", dll_getsize(dll));
+	if (!__dll_is_bit(dll->bits, DLL_GBIT_QUIET))
+		printf("%zu elements\nFrom end:\n", dll_getsize(dll));
 	for (dll_obj_t *restrict i = dll->last; i; i = i->prev) {
-		__dll_print_logic(fn_print, i);
+		__dll_print_logic(dll_printr, fn_print, i);
 	}
 }
 
 # undef __dll_print_logic
 
-# define __dll_findkey_logic(_fn, _m) __extension__({ \
+# define __dll_findkey_logic(_fn_name, _fn, _m) __extension__({ \
 	int	_ret = _fn(_m->data); \
 	if (!_ret) { \
 		return (_m); \
 	} else if (0 > _ret && !__dll_is_bit((_m)->bits, DLL_BIT_EIGN)) { \
+		if (!__dll_is_bit((_m)->bits, DLL_BIT_EQUIET)) \
+			fprintf(stderr, #_fn_name ": delete processing function " \
+										"return negative value\n"); \
 		return NULL; \
 	} \
 })
@@ -214,7 +256,7 @@ static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
 	dll_obj_t *restrict	match = dll->last;
 
 	while (match) {
-		__dll_findkey_logic(fn_search, match);
+		__dll_findkey_logic(dll_findkeyr, fn_search, match);
 		match = match->prev;
 	}
 	return NULL;
@@ -229,7 +271,17 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 	dll_obj_t *restrict	match = dll->head;
 
 	while (match) {
-		__dll_findkey_logic(fn_search, match);
+		int _ret = fn_search(match->data);
+		if (!_ret) {
+			return (match);
+		} else if (0 > _ret && !__dll_is_bit((match)->bits, DLL_BIT_EIGN)) {
+			if (!__dll_is_bit((match)->bits, DLL_BIT_EQUIET))
+				fprintf(stderr, "dll_findkey"
+					": delete processing function "
+					"return negative value\n");
+			return NULL;
+		}
+		// __dll_findkey_logic(dll_findkey, fn_search, match);
 		match = match->next;
 	}
 	return NULL;
