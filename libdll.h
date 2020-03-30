@@ -183,9 +183,8 @@ static inline void	dll_print(const dll_t *restrict dll,
 		int	ret = dll_printone(i, fn_print);
 		if (0 > ret && !__dll_is_bit((i)->bits, DLL_BIT_EIGN)) {
 			if (!__dll_is_bit((i)->bits, DLL_BIT_EQUIET))
-				fprintf(stderr, "dll_print"
-					": output processing function "
-					"return negative value: %d\n", ret);
+				fprintf(stderr, "%s: callback return a negative value: %d\n",
+					__func__, ret);
 			break ;
 		}
 	}
@@ -203,9 +202,8 @@ static inline void	dll_printr(const dll_t *restrict dll,
 		int	ret = dll_printone(i, fn_print);
 		if (0 > ret && !__dll_is_bit((i)->bits, DLL_BIT_EIGN)) {
 			if (!__dll_is_bit((i)->bits, DLL_BIT_EQUIET))
-				fprintf(stderr, "dll_print"
-					": output processing function "
-					"return negative value: %d\n", ret);
+				fprintf(stderr, "%s: callback return a negative value: %d\n",
+					__func__, ret);
 			break ;
 		}
 	}
@@ -225,9 +223,8 @@ static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
 			return (match);
 		} else if (0 > ret && !__dll_is_bit((match)->bits, DLL_BIT_EIGN)) {
 			if (!__dll_is_bit((match)->bits, DLL_BIT_EQUIET))
-				fprintf(stderr, "dll_findkeyr"
-					": delete processing function "
-					"return negative value: %d\n", ret);
+				fprintf(stderr, "%s: callback return a negative value: %d\n",
+					__func__, ret);
 			return NULL;
 		}
 		match = match->prev;
@@ -249,9 +246,8 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 			return (match);
 		} else if (0 > ret && !__dll_is_bit((match)->bits, DLL_BIT_EIGN)) {
 			if (!__dll_is_bit((match)->bits, DLL_BIT_EQUIET))
-				fprintf(stderr, "dll_findkeyr"
-					": delete processing function "
-					"return negative value: %d\n", ret);
+				fprintf(stderr, "%s: callback return a negative value: %d\n",
+					__func__, ret);
 			return NULL;
 		}
 		match = match->next;
