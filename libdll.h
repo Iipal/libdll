@@ -24,7 +24,6 @@
  */
 # define DLL_BIT_EQUIET 2
 
-
 /**
  * Default behavior for list
  */
@@ -271,17 +270,7 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 	dll_obj_t *restrict	match = dll->head;
 
 	while (match) {
-		int _ret = fn_search(match->data);
-		if (!_ret) {
-			return (match);
-		} else if (0 > _ret && !__dll_is_bit((match)->bits, DLL_BIT_EIGN)) {
-			if (!__dll_is_bit((match)->bits, DLL_BIT_EQUIET))
-				fprintf(stderr, "dll_findkey"
-					": delete processing function "
-					"return negative value\n");
-			return NULL;
-		}
-		// __dll_findkey_logic(dll_findkey, fn_search, match);
+		__dll_findkey_logic(dll_findkey, fn_search, match);
 		match = match->next;
 	}
 	return NULL;
