@@ -15,6 +15,7 @@ Specify bevahior for list:
 - DLL_GBIT_QUIET: Do not print output order and objects count in dll_print*
 
 Specify bevahior for each list object:
-- DLL_GBIT_DFLT: default behavior
-- DLL_GBIT_QUIET: if object handler returns neg.value - do not print error message(dll_delkey*, dll_print*)
-- DLL_GBIT_EIGN: if object handler returns neg.value - do not stop processing list and no erroo message(dll_delkey*, dll_print*)
+- DLL_BIT_DFLT: default behavior
+- DLL_BIT_QUIET: if object handler returns neg.value - do not print error message(dll_delkey*, dll_print*)
+- DLL_BIT_EIGN: if object handler returns neg.value - do not stop processing list and no erroo message(dll_delkey*, dll_print*)
+- DLL_BIT_DUP: duplicating a 'void*' what passed in dll_new\dll_pushfront\dll_pushback and free it when deleting. ITS NOT SAFE TO USE IT, allocate memory by your own.
