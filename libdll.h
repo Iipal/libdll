@@ -71,17 +71,17 @@ typedef int (*f_dll_obj_handler)(const void *restrict);
  * For specifying behavior for all objects - set \param _bits using DLL_GBIT*
  * \return dll_t*
  */
-# define dll_init(_bits) __extension__({ \
-	dll_t *restrict	__out = NULL; \
-	assert((__out = calloc(1, sizeof(*__out)))); \
-	__out->bits = _bits; \
-	__out; \
-})
+static inline dll_t	*dll_init(dll_bits_t bits) {
+	dll_t *restrict	out;
+	assert((out = calloc(1, sizeof(*out))));
+	out->bits = bits;
+	return out;
+}
 
 /**
  * Create a duplicate \param size bytes of \param mem
  */
-void	*__dll_memdup(const void *restrict mem, size_t size) {
+static inline void	*__dll_memdup(const void *restrict mem, size_t size) {
 	void	*dup;
 	assert((dup = calloc(1, size)));
 	return memcpy(dup, mem, size);
@@ -89,64 +89,19 @@ void	*__dll_memdup(const void *restrict mem, size_t size) {
 
 /**
  * Create new object
- * \param _data: void*
- * \param _size: size_t: size of _data
- * \param _bits: dll_bits_t
- * \return dll_obj_t*
+ * For specifying behavior for this object - set \param _bits using DLL_BIT*
  */
-# define dll_new(_data, _size, _bits) __extension__({ \
-	dll_obj_t *restrict __out = NULL; \
-	assert((__out = calloc(1, sizeof(*__out)))); \
-	__out->data = (void *restrict)(_data); \
-	if (__dll_is_bit((_bits), DLL_BIT_DUP)) \
-		__out->data = __dll_memdup(_data, _size);\
-	__out->data_size = (size_t)(_size); \
-	__out->bits = (dll_bits_t)(_bits); \
-	__out; \
-})
-
-/**
- * Free all data
- * \param _dll: dll_t*
- */
-# define dll_free(_dll) __extension__({ \
-	__typeof__ (_dll)	__dll = (_dll); \
-	while (dll_delhead(__dll)) \
-		; \
-	free(_dll); \
-})
-
-/**
- * Free given object
- * \param _dll_obj: dll_obj_t*
- */
-# define dll_freeobj(_dll_obj) __extension__({ \
-	__typeof__(_dll_obj) __fdll_obj = (_dll_obj); \
-	if (__dll_is_bit(__fdll_obj->bits, DLL_BIT_DUP)) \
-		free(__fdll_obj->data); \
-	free(__fdll_obj); \
-	__fdll_obj = NULL; \
-})
-
-/**
- * Delete links to given object
- * \param _dll: dll_t*
- * \param _dll_obj: dll_obj_t*
- */
-# define dll_del(_dll, _dll_obj) __extension__({ \
-	__typeof__ (_dll) __dll = (_dll); \
-	__typeof__ (_dll_obj) __dll_obj = (_dll_obj); \
-	if (__dll_obj->prev) { \
-		__dll_obj->prev->next = __dll_obj->next; \
-	} else { \
-		__dll->head = __dll_obj->next; \
-	} \
-	if (__dll_obj->next) { \
-		__dll_obj->next->prev = __dll_obj->prev; \
-	} \
-	--__dll->objs_count; \
-	dll_freeobj(__dll_obj); \
-})
+static inline dll_obj_t	*dll_new(void *restrict data,
+		size_t size, dll_bits_t bits) {
+	dll_obj_t *restrict	out;
+	assert((out = calloc(1, sizeof(*out))));
+	out->data = data;
+	if (__dll_is_bit(bits, DLL_BIT_DUP))
+		out->data = __dll_memdup(data, size);
+	out->data_size = size;
+	out->bits = bits;
+	return out;
+}
 
 /**
  * Returns a count of objects in linked list
@@ -216,16 +171,6 @@ static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
 	return fn_print(dll_obj->data);
 }
 
-# define __dll_print_logic(_fn_name, _fn, _i) __extension__({ \
-	if (0 > dll_printone(_i, _fn) \
-	&& !__dll_is_bit((_i)->bits, DLL_BIT_EIGN)) { \
-		if (!__dll_is_bit((_i)->bits, DLL_BIT_EQUIET)) \
-			fprintf(stderr, #_fn_name ": output processing function " \
-										"return negative value\n"); \
-		break ; \
-	} \
-})
-
 /**
  * Print all objects from begin
  * If at least for 1 object \param fn_print handler returns a negative value - printing will stop.
@@ -235,7 +180,14 @@ static inline void	dll_print(const dll_t *restrict dll,
 	if (!__dll_is_bit(dll->bits, DLL_GBIT_QUIET))
 		printf("%zu elements\nFrom begin:\n", dll_getsize(dll));
 	for (dll_obj_t *restrict i = dll->head; i; i = i->next) {
-		__dll_print_logic(dll_print, fn_print, i);
+		int	ret = dll_printone(i, fn_print);
+		if (0 > ret && !__dll_is_bit((i)->bits, DLL_BIT_EIGN)) {
+			if (!__dll_is_bit((i)->bits, DLL_BIT_EQUIET))
+				fprintf(stderr, "dll_print"
+					": output processing function "
+					"return negative value: %d\n", ret);
+			break ;
+		}
 	}
 }
 
@@ -248,23 +200,16 @@ static inline void	dll_printr(const dll_t *restrict dll,
 	if (!__dll_is_bit(dll->bits, DLL_GBIT_QUIET))
 		printf("%zu elements\nFrom end:\n", dll_getsize(dll));
 	for (dll_obj_t *restrict i = dll->last; i; i = i->prev) {
-		__dll_print_logic(dll_printr, fn_print, i);
+		int	ret = dll_printone(i, fn_print);
+		if (0 > ret && !__dll_is_bit((i)->bits, DLL_BIT_EIGN)) {
+			if (!__dll_is_bit((i)->bits, DLL_BIT_EQUIET))
+				fprintf(stderr, "dll_print"
+					": output processing function "
+					"return negative value: %d\n", ret);
+			break ;
+		}
 	}
 }
-
-# undef __dll_print_logic
-
-# define __dll_findkey_logic(_fn_name, _fn, _m) __extension__({ \
-	int	_ret = _fn(_m->data); \
-	if (!_ret) { \
-		return (_m); \
-	} else if (0 > _ret && !__dll_is_bit((_m)->bits, DLL_BIT_EIGN)) { \
-		if (!__dll_is_bit((_m)->bits, DLL_BIT_EQUIET)) \
-			fprintf(stderr, #_fn_name ": delete processing function " \
-										"return negative value\n"); \
-		return NULL; \
-	} \
-})
 
 /**
  * Find object by data(key) from end
@@ -275,7 +220,16 @@ static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
 	dll_obj_t *restrict	match = dll->last;
 
 	while (match) {
-		__dll_findkey_logic(dll_findkeyr, fn_search, match);
+		int ret = fn_search(match->data);
+		if (!ret) {
+			return (match);
+		} else if (0 > ret && !__dll_is_bit((match)->bits, DLL_BIT_EIGN)) {
+			if (!__dll_is_bit((match)->bits, DLL_BIT_EQUIET))
+				fprintf(stderr, "dll_findkeyr"
+					": delete processing function "
+					"return negative value: %d\n", ret);
+			return NULL;
+		}
 		match = match->prev;
 	}
 	return NULL;
@@ -290,30 +244,59 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 	dll_obj_t *restrict	match = dll->head;
 
 	while (match) {
-		__dll_findkey_logic(dll_findkey, fn_search, match);
+		int ret = fn_search(match->data);
+		if (!ret) {
+			return (match);
+		} else if (0 > ret && !__dll_is_bit((match)->bits, DLL_BIT_EIGN)) {
+			if (!__dll_is_bit((match)->bits, DLL_BIT_EQUIET))
+				fprintf(stderr, "dll_findkeyr"
+					": delete processing function "
+					"return negative value: %d\n", ret);
+			return NULL;
+		}
 		match = match->next;
 	}
 	return NULL;
 }
 
-# undef __dll_findkey_logic
+/**
+ * Free given object
+ */
+static inline void	dll_freeobj(dll_obj_t *restrict dll_obj) {
+	if (__dll_is_bit(dll_obj->bits, DLL_BIT_DUP))
+		free(dll_obj->data);
+	free(dll_obj);
+	dll_obj = NULL;
+}
 
-# define __dll_delkey_logic(_dll, _find_fn, _fn) __extension__({ \
-	dll_obj_t *restrict	del = _find_fn(_dll, _fn); \
-	if (!del) \
-		return false; \
-	dll_del(_dll, del); \
-	if (!_dll->head || !_dll->last) \
-		dll->head = dll->last = NULL; \
-	return true; \
-})
+/**
+ * Delete links to given object and free
+ */
+static inline void	dll_del(dll_t *restrict dll,
+		dll_obj_t *restrict dll_obj) {
+	if (dll_obj->prev) {
+		dll_obj->prev->next = dll_obj->next;
+	} else {
+		dll->head = dll_obj->next;
+	}
+	if (dll_obj->next) {
+		dll_obj->next->prev = dll_obj->prev;
+	}
+	dll_freeobj(dll_obj);
+}
 
 /**
  * Delete object by data(key) from end
  */
 static inline bool	dll_delkeyr(dll_t *restrict dll,
 		f_dll_obj_handler fn_search_del) {
-	__dll_delkey_logic(dll, dll_findkeyr, fn_search_del);
+	dll_obj_t *restrict del = dll_findkeyr(dll, fn_search_del);
+	if (!del)
+		return false;
+	dll_del(dll, del);
+	if (!dll->head || !dll->last)
+		dll->head = dll->last = NULL;
+	return true;
 }
 
 /**
@@ -321,10 +304,14 @@ static inline bool	dll_delkeyr(dll_t *restrict dll,
  */
 static inline bool	dll_delkey(dll_t *restrict dll,
 		f_dll_obj_handler fn_search_del) {
-	__dll_delkey_logic(dll, dll_findkey, fn_search_del);
+	dll_obj_t *restrict del = dll_findkey(dll, fn_search_del);
+	if (!del)
+		return false;
+	dll_del(dll, del);
+	if (!dll->head || !dll->last)
+		dll->head = dll->last = NULL;
+	return true;
 }
-
-# undef __dll_delkey_logic
 
 /**
  * Find object by index from end(starts from 1)
@@ -350,31 +337,31 @@ static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index) {
 	return match;
 }
 
-# define __dll_delid_logic(_dll, _find_fn, _idx) __extension__({ \
-	dll_obj_t *restrict	del = _find_fn(_dll, _idx); \
-	if (!del) \
-		return false; \
-	dll_del(_dll, del); \
-	if (!_dll->head || !_dll->last) \
-		_dll->head = _dll->last = NULL; \
-	return true; \
-})
-
 /**
  * Delete object by index from end(starts from 1)
  */
 static inline bool	dll_delidr(dll_t *restrict dll, size_t index) {
-	__dll_delid_logic(dll, dll_findid, index);
+	dll_obj_t *restrict del = dll_findidr(dll, index);
+	if (!del)
+		return false;
+	dll_del(dll, del);
+	if (!dll->head || !dll->last)
+		dll->head = dll->last = NULL;
+	return true;
 }
 
 /**
  * Delete object by index from start(starts from 1)
  */
 static inline bool	dll_delid(dll_t *restrict dll, size_t index) {
-	__dll_delid_logic(dll, dll_findidr, index);
+	dll_obj_t *restrict del = dll_findid(dll, index);
+	if (!del)
+		return false;
+	dll_del(dll, del);
+	if (!dll->head || !dll->last)
+		dll->head = dll->last = NULL;
+	return true;
 }
-
-# undef __dll_delid_logic
 
 /**
  * Delete first object
@@ -402,6 +389,15 @@ static inline bool	dll_dellast(dll_t *restrict dll) {
 	if (!dll->last)
 		dll->head = NULL;
 	return true;
+}
+
+/**
+ * Free all objects and list
+ */
+static inline void	dll_free(dll_t *restrict dll) {
+	while (dll_delhead(dll))
+		;
+	free(dll);
 }
 
 # undef __dll_is_bit
