@@ -229,7 +229,19 @@ static inline bool	dll_delkey(dll_t *restrict dll,
 }
 
 /**
- * Find object by index(starts from 1)
+ * Find object by index from end(starts from 1)
+ */
+static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index) {
+	if (index > dll->objs_count)
+		return NULL;
+	dll_obj_t *restrict	match = dll->last;
+	for (size_t indx = 1; match && indx != index; ++indx, match = match->prev)
+		;
+	return match;
+}
+
+/**
+ * Find object by index from start(starts from 1)
  */
 static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index) {
 	if (index > dll->objs_count)
