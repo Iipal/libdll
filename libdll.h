@@ -165,6 +165,11 @@ static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
 	return fn_print(dll_obj->data);
 }
 
+# define __dll_print_logic(_fn, _i) __extension__({ \
+	if (0 > dll_printone(_i, _fn) && !__dll_is_bit((_i)->bits, DLL_BIT_EIGN)) \
+		break ; \
+})
+
 /**
  * Print all objects from begin
  * If at least for 1 object \param fn_print handler returns a negative value - printing will stop.
@@ -173,9 +178,7 @@ static inline void	dll_print(const dll_t *restrict dll,
 		f_dll_obj_handler fn_print) {
 	printf("%zu elements\nFrom begin:\n", dll_getsize(dll));
 	for (dll_obj_t *restrict i = dll->head; i; i = i->next) {
-		if (0 > dll_printone(i, fn_print)
-		&& !__dll_is_bit(i->bits, DLL_BIT_EIGN))
-			break ;
+		__dll_print_logic(fn_print, i);
 	}
 }
 
@@ -187,14 +190,38 @@ static inline void	dll_printr(const dll_t *restrict dll,
 		f_dll_obj_handler fn_print) {
 	printf("%zu elements\nFrom end:\n", dll_getsize(dll));
 	for (dll_obj_t *restrict i = dll->last; i; i = i->prev) {
-		if (0 > dll_printone(i, fn_print)
-		&& !__dll_is_bit(i->bits, DLL_BIT_EIGN))
-			break ;
+		__dll_print_logic(fn_print, i);
 	}
 }
 
+# undef __dll_print_logic
+
+# define __dll_findkey_logic(_fn, _m) __extension__({ \
+	int	_ret = _fn(_m->data); \
+	if (!_ret) { \
+		return (_m); \
+	} else if (0 > _ret && !__dll_is_bit((_m)->bits, DLL_BIT_EIGN)) { \
+		return NULL; \
+	} \
+})
+
 /**
- * Find object by data(key)
+ * Find object by data(key) from end
+ * \return a pointer to a matched object if \param fn_search returns a zero. Otherwise, if the desired object does not exist or \param fn_search handler returns a negative value - NULL will be returned.
+*/
+static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
+		f_dll_obj_handler fn_search) {
+	dll_obj_t *restrict	match = dll->last;
+
+	while (match) {
+		__dll_findkey_logic(fn_search, match);
+		match = match->prev;
+	}
+	return NULL;
+}
+
+/**
+ * Find object by data(key) from start
  * \return a pointer to a matched object if \param fn_search returns a zero. Otherwise, if the desired object does not exist or \param fn_search handler returns a negative value - NULL will be returned.
 */
 static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
@@ -202,31 +229,41 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 	dll_obj_t *restrict	match = dll->head;
 
 	while (match) {
-		int	fn_ret = fn_search(match->data);
-		if (!fn_ret) {
-			return match;
-		} else if (0 > fn_ret
-		&& !__dll_is_bit(match->bits, DLL_BIT_EIGN)) {
-			return NULL;
-		}
+		__dll_findkey_logic(fn_search, match);
 		match = match->next;
 	}
 	return NULL;
 }
 
+# undef __dll_findkey_logic
+
+# define __dll_delkey_logic(_dll, _find_fn, _fn) __extension__({ \
+	dll_obj_t *restrict	del = _find_fn(_dll, _fn); \
+	if (!del) \
+		return false; \
+	dll_del(_dll, del); \
+	if (!_dll->head || !_dll->last) \
+		dll->head = dll->last = NULL; \
+	return true; \
+})
+
 /**
- * Delete object by data(key)
+ * Delete object by data(key) from end
+ */
+static inline bool	dll_delkeyr(dll_t *restrict dll,
+		f_dll_obj_handler fn_search_del) {
+	__dll_delkey_logic(dll, dll_findkeyr, fn_search_del);
+}
+
+/**
+ * Delete object by data(key) from start
  */
 static inline bool	dll_delkey(dll_t *restrict dll,
 		f_dll_obj_handler fn_search_del) {
-	dll_obj_t *restrict	del = dll_findkey(dll, fn_search_del);
-	if (!del)
-		return false;
-	dll_del(dll, del);
-	if (!dll->head || !dll->last)
-		dll->head = dll->last = NULL;
-	return true;
+	__dll_delkey_logic(dll, dll_findkey, fn_search_del);
 }
+
+# undef __dll_delkey_logic
 
 /**
  * Find object by index from end(starts from 1)
@@ -252,18 +289,31 @@ static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index) {
 	return match;
 }
 
+# define __dll_delid_logic(_dll, _find_fn, _idx) __extension__({ \
+	dll_obj_t *restrict	del = _find_fn(_dll, _idx); \
+	if (!del) \
+		return false; \
+	dll_del(_dll, del); \
+	if (!_dll->head || !_dll->last) \
+		_dll->head = _dll->last = NULL; \
+	return true; \
+})
+
 /**
- * Delete object by index(starts from 1)
+ * Delete object by index from end(starts from 1)
+ */
+static inline bool	dll_delidr(dll_t *restrict dll, size_t index) {
+	__dll_delid_logic(dll, dll_findid, index);
+}
+
+/**
+ * Delete object by index from start(starts from 1)
  */
 static inline bool	dll_delid(dll_t *restrict dll, size_t index) {
-	dll_obj_t *restrict	del = dll_findid(dll, index);
-	if (!del)
-		return false;
-	dll_del(dll, del);
-	if (!dll->head || !dll->last)
-		dll->head = dll->last = NULL;
-	return true;
+	__dll_delid_logic(dll, dll_findidr, index);
 }
+
+# undef __dll_delid_logic
 
 /**
  * Delete first object
