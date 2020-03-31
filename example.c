@@ -41,11 +41,11 @@ int	main(void) {
 	};
 	dll_t *restrict	list = dll_init(DLL_GBIT_QUIET);
 
-	dll_pushfront(list, &s[0], sizeof(s[0]), DLL_BIT_DFLT);
-	dll_pushfront(list, &s[1], sizeof(s[1]), DLL_BIT_DFLT);
-	dll_pushback(list, &s[2], sizeof(s[2]), DLL_BIT_DFLT);
-	dll_pushfront(list, &s[3], sizeof(s[3]), DLL_BIT_DFLT);
-	dll_pushback(list, &s[4], sizeof(s[4]), DLL_BIT_DFLT);
+	dll_pushfront(list, &s[0], sizeof(s[0]), DLL_BIT_DFLT, NULL);
+	dll_pushfront(list, &s[1], sizeof(s[1]), DLL_BIT_DFLT, NULL);
+	dll_pushback(list, &s[2], sizeof(s[2]), DLL_BIT_DFLT, NULL);
+	dll_pushfront(list, &s[3], sizeof(s[3]), DLL_BIT_DFLT, NULL);
+	dll_pushback(list, &s[4], sizeof(s[4]), DLL_BIT_DFLT, NULL);
 	dll_printr(list, print_object);
 
 	printf("\ndeleteing object with val == 1 and str == 'test2':\n");
