@@ -44,13 +44,8 @@ static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
 // Delete last object in list
 static inline bool	dll_popback(dll_t *restrict dll);
 
-/**
- * Returns a pointer to data in object casted to \param _t
- * \param _dll_obj: dll_obj_t*
- * \param _t: cast to this type
- */
-# define dll_getdata(_t, _dll_obj) ((_t)((_dll_obj)->data))
-
+// Returns a pointer to data in object
+static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj);
 // Returns a count of objects in list
 static inline size_t	dll_getsize(const dll_t *restrict dll);
 // Returns a current first object in list

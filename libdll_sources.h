@@ -98,6 +98,9 @@ static inline bool	dll_popback(dll_t *restrict dll) {
 	return true;
 }
 
+static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj) {
+	return dll_obj->data;
+}
 static inline size_t	dll_getsize(const dll_t *restrict dll) {
 	return dll->objs_count;
 }
