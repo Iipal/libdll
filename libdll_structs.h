@@ -8,11 +8,15 @@
 # include <stddef.h>
 # include "libdll_bits.h"
 
+typedef int (*f_dll_obj_handler)(const void *restrict);
+typedef void (*f_dll_obj_data_del)(void *restrict);
+
 typedef struct s_dll_obj {
 	struct s_dll_obj *restrict	next;
 	struct s_dll_obj *restrict	prev;
 	void *restrict	data;
 	size_t	data_size;
+	f_dll_obj_data_del	del;
 	dll_bits_t	bits;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_obj_t;
 
@@ -23,6 +27,5 @@ typedef struct s_dll {
 	dll_bits_t	bits;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_t;
 
-typedef int (*f_dll_obj_handler)(const void *restrict);
 
 #endif /* LIBDLL_STRUCTS_H */
