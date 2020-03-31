@@ -107,7 +107,19 @@ static inline dll_obj_t	*dll_new(void *restrict data,
  * Returns a count of objects in linked list
  * \param _dll: dll_t*
  */
-# define dll_getsize(_dll) __extension__({ (_dll)->objs_count; })
+# define dll_getsize(_dll) (_dll)->objs_count
+
+/**
+ * Returns a pointer to data in object casted to \param _t
+ * \param _dll_obj: dll_obj_t*
+ * \param _t: cast to this type
+ */
+# define dll_getdata(_t, _dll_obj) ((_t)((_dll_obj)->data))
+
+# define dll_getlast(_dll) (_dll)->last
+# define dll_gethead(_dll) (_dll)->head
+# define dll_getprev(_dll_obj) (_dll_obj)->prev
+# define dll_getnext(_dll_obj) (_dll_obj)->next
 
 /**
  * Adding a \param dll_obj at the front of list
