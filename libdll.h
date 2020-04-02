@@ -2,6 +2,7 @@
 # define LIBDLL_H
 
 # include <stdbool.h>
+# include "libdll_bits.h"
 # include "libdll_structs.h"
 
 /**

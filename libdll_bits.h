@@ -27,18 +27,20 @@ typedef unsigned int dll_bits_t;
  * Do not print any error-message for object
  */
 # define DLL_BIT_EQUIET 2
-
 /**
  * Duplicating a 'void*' what passed in dll_new\dll_pushfront\dll_pushback and free it when deleting
  * \warning { ITS NOT SAFE TO USE IT, allocate memory by your own }
  */
 # define DLL_BIT_DUP 4
+/**
+ * Free memory with free(3) what you put in object void *data
+ */
+# define DLL_BIT_FREE 8
 
 /**
  * Default behavior for list
  */
 # define DLL_GBIT_DFLT 0
-
 /**
  * Do not print output order and objects count in linked list in dll_print* function
  */

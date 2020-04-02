@@ -280,7 +280,8 @@ static inline void	dll_free(dll_t *restrict dll) {
 static inline void	dll_freeobj(dll_obj_t *restrict dll_obj) {
 	if (dll_obj->del)
 		dll_obj->del(dll_obj->data);
-	else if (__dll_is_bit(dll_obj->bits, DLL_BIT_DUP))
+	else if (__dll_is_bit(dll_obj->bits, DLL_BIT_DUP)
+		|| __dll_is_bit(dll_obj->bits, DLL_BIT_FREE))
 		free(dll_obj->data);
 	free(dll_obj);
 	dll_obj = NULL;
