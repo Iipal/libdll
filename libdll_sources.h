@@ -22,26 +22,26 @@ static inline dll_t	*dll_init(dll_bits_t bits) {
 }
 
 static inline dll_obj_t	*dll_new(void *restrict data,
-		size_t size, dll_bits_t bits, f_dll_obj_data_del fn_del) {
+		size_t size, dll_bits_t obj_bits, f_dll_obj_data_del fn_del) {
 	dll_obj_t *restrict	out;
 	assert((out = calloc(1, sizeof(*out))));
 	out->data = data;
-	if (__dll_is_bit(bits, DLL_BIT_DUP)) {
+	if (__dll_is_bit(obj_bits, DLL_BIT_DUP)) {
 		assert((out->data = calloc(1, size)));
 		out->data = memcpy(out->data, data, size);
 	}
 	out->data_size = size;
 	out->del = fn_del;
-	out->bits = bits;
+	out->bits = obj_bits;
 	return out;
 }
 
 static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
 		void *restrict data,
 		size_t data_size,
-		dll_bits_t obj_type,
+		dll_bits_t obj_bits,
 		f_dll_obj_data_del fn_del) {
-	return dll_pushfrontobj(dll, dll_new(data, data_size, obj_type, fn_del));
+	return dll_pushfrontobj(dll, dll_new(data, data_size, obj_bits, fn_del));
 }
 
 static inline dll_obj_t	*dll_pushfrontobj(dll_t *restrict dll,
@@ -71,9 +71,9 @@ static inline bool	dll_popfront(dll_t *restrict dll) {
 static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 		void *restrict data,
 		size_t data_size,
-		dll_bits_t obj_type,
+		dll_bits_t obj_bits,
 		f_dll_obj_data_del fn_del) {
-	return dll_pushbackobj(dll, dll_new(data, data_size, obj_type, fn_del));
+	return dll_pushbackobj(dll, dll_new(data, data_size, obj_bits, fn_del));
 }
 
 static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
