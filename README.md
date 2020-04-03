@@ -73,6 +73,11 @@ dll_getlast(my_list);
 ```c
 // Get a data what you put in dll_new/dll_push* (void* argument)
 dll_getdata(my_obj);
+/**
+ * Get a data size what you put in dll_new/dll_push* (size_t size)
+ * Usefull when you put a string in list object
+ */
+dll_getsizeobj(my_obj);
 // Get pointer to the previous object
 dll_getprev(my_obj);
 // Get pointer to next object

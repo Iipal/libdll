@@ -101,9 +101,6 @@ static inline bool	dll_popback(dll_t *restrict dll) {
 	return true;
 }
 
-static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj) {
-	return dll_obj->data;
-}
 static inline size_t	dll_getsize(const dll_t *restrict dll) {
 	return dll->objs_count;
 }
@@ -113,7 +110,12 @@ static inline dll_obj_t	*dll_gethead(const dll_t *restrict dll) {
 static inline dll_obj_t	*dll_getlast(const dll_t *restrict dll) {
 	return dll->last;
 }
-
+static inline size_t	dll_getsizeobj(const dll_obj_t *restrict dll_obj) {
+	return dll_obj->data_size;
+}
+static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj) {
+	return dll_obj->data;
+}
 static inline dll_obj_t	*dll_getprev(const dll_obj_t *restrict dll_obj) {
 	return dll_obj->prev;
 }

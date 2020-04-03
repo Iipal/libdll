@@ -49,14 +49,16 @@ static inline bool	dll_popfront(dll_t *restrict dll);
 // Delete last object in list
 static inline bool	dll_popback(dll_t *restrict dll);
 
-// Get a pointer to data in object
-static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj);
 // Get a count of objects in list
 static inline size_t	dll_getsize(const dll_t *restrict dll);
 // Get a current first object in list
 static inline dll_obj_t	*dll_gethead(const dll_t *restrict dll);
 // Get a current last object in list
 static inline dll_obj_t	*dll_getlast(const dll_t *restrict dll);
+// Get a pointer to data in object
+static inline size_t	dll_getsizeobj(const dll_obj_t *restrict dll_obj);
+// Get a pointer to data in object
+static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj);
 // Get a previous object
 static inline dll_obj_t	*dll_getprev(const dll_obj_t *restrict dll_obj);
 // Get a next object
