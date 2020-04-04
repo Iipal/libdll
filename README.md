@@ -8,11 +8,6 @@ With this library you can do:
 ### Create new Double Linked List:
 ```c
 /**
- * It's not required to cheks NULL-pointer exception
- *  for any memory allocations what provide libdll
- *  because it checks internally via assert(3)-macros
- *  and aborting a program correspondingly
- *
  * use DLL_GBIT* constants to setup bits mask
  */
 dll_t   *my_list = dll_init(DLL_GBIT_DEFAULT);

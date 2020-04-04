@@ -32,7 +32,7 @@ int	match_obj2err(const void *restrict obj_data) {
 	const struct s_test *restrict test_data = obj_data;
 	const bool ret = (2 == test_data->val && !strcmp("test3", test_data->str));
 	if (true == ret)
-		return -1;
+		return -42;
 	return !ret;
 }
 
@@ -44,7 +44,7 @@ int	main(void) {
 		{ strdup("test4"), 3 },
 		{ strdup("test5"), 4 }
 	};
-	dll_t *restrict	list = dll_init(DLL_GBIT_QUIET);
+	dll_t *restrict	list = dll_init(DLL_GBIT_DFLT);
 
 	dll_pushfront(list, &s[0], sizeof(s[0]), DLL_BIT_DFLT, free_obj);
 	dll_pushfront(list, &s[1], sizeof(s[1]), DLL_BIT_DFLT, free_obj);
