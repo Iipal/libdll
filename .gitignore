@@ -1,3 +1,5 @@
+.VScode/**
+.vscode/**
 **.out
 **.o
 **.s
