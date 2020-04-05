@@ -8,9 +8,10 @@ With this library you can do:
 ### Create new Double Linked List:
 ```c
 /**
- * use DLL_GBIT* constants to setup bits mask
+ * use DLL_BIT_DEFAULT or DLL_BIT_EIGN constants
+ *  to setup some behavior for this list
  */
-dll_t   *my_list = dll_init(DLL_GBIT_DEFAULT);
+dll_t   *my_list = dll_init(DLL_BIT_DEFAULT);
 ```
 
 ### Create new list object:
@@ -168,15 +169,37 @@ dll_freeobj(unlinked);
 dll_free(my_list);
 ```
 
-### Set-up internal bits mask for list:
-  - DLL_GBIT_DFLT: default behavior
-  - DLL_GBIT_QUIET: Do not print output order and objects count in dll_print*
+### Asserting errors:
+```c
+/**
+ * if my_list is empty dll_findid returns a false
+ *  and dll_assert will print corresponding error message
+ *  to stderr and abort the program
+ */
+dll_assert(dll_findid(my_list, 1));
 
-### Set-up internal bits mask for each object in list:
+/**
+ * Just return a string with error message what correspond to
+ *  given error number
+ */
+dll_strerr(2);
+
+/**
+ * Print a last occurred error in list to stderr in format:
+ *
+ * "program_name.out: some string: libdll error message."
+ */
+dll_perror("some string");
+```
+
+#### Set-up internal bits mask for each object in list(only in dll_new/dll_push*):
   - DLL_BIT_DFLT: default behavior
-  - DLL_BIT_QUIET: if object handler returns neg.value - do not print error message(dll_delkey*, dll_print*)
-  - DLL_BIT_EIGN: if object handler returns neg.value - do not stop processing list and no erroo message(dll_delkey*, dll_print*)
-  - DLL_BIT_DUP: duplicating a 'void*' what passed in dll_new\dll_pushfront\dll_pushback and free it when deleting. ITS NOT SAFE TO USE IT, allocate memory by your own.
+  - DLL_BIT_EIGN: ignore errors, doesn't return NULL and doesn't setting-up a errno, if has specific NULL-pointer exceptions occurred if object pointing to NULL and etc.
+  - DLL_BIT_DUP: duplicating a 'void*' what passed in dll_new\dll_push* and free it when deleting.
+    - ITS NOT SAFE TO USE IT, allocate memory by your own.
+  - DLL_BIT_FREE: Freeing memory with free(3) what you put in the void*data at dll_new\dll_push*
 
+#### Set-up internal bits mask for list(only in dll_init):
+  - only DLL_BIT_DFLT and DLL_BIT_EIGN
 
 __Thanks and have fun =)__
