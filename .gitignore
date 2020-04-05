@@ -1,5 +1,9 @@
-.VScode/**
-.vscode/**
-**.out
+.vscode/
+.VScode/
 **.o
-**.s
+**.a
+**.S
+**.d
+**.DS_Store
+test/
+example/example
