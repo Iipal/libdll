@@ -16,7 +16,7 @@
 typedef unsigned int dll_bits_t;
 
 /**
- * Default behavior for object
+ * Default behavior
  */
 # define DLL_BIT_DFLT 0
 /**
@@ -24,30 +24,24 @@ typedef unsigned int dll_bits_t;
  *  and if handlers return a negative value
  */
 # define DLL_BIT_EIGN 1
-/**
- * Doesn't Ignore errors as DLL_BIT_EIGN, but just doesn't print error messages
- */
-# define DLL_BIT_EQUIET 2
+
+// Maximum valid bits mask value for dll_init
+# define __DLL_MAX_VALID_LIST_MASK 1
+
 /**
  * Duplicating a 'void*' what passed in
  *  dll_new\dll_pushfront\dll_pushback and free it when deleting
  *
  * \warning { IT'S MAY NOT BE SAFE TO USE IT. Allocate memory on your own }
  */
-# define DLL_BIT_DUP 4
+# define DLL_BIT_DUP 2
 /**
  * Freeing memory with free(3) what you put in the object
  */
-# define DLL_BIT_FREE 8
+# define DLL_BIT_FREE 4
 
-/**
- * Default behavior for list
- */
-# define DLL_GBIT_DFLT 0
-/**
- * Doesn't print error messages about in-correct work with the list,
- *  such as list is empty when you trying to delete\pop object or etc.
- */
-# define DLL_GBIT_QUIET 1
+// Maximum valid bits mask value for dll_new/dll_push*
+# define __DLL_MAX_VALID_OBJ_MASK 7
+
 
 #endif /* LIBDLL_BITS_H */
