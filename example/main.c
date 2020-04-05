@@ -1,5 +1,7 @@
 #include "header.h"
 
+#include <time.h>
+
 int	main(void) {
 	struct s_test	s[5] = {
 		{ strdup("test1"), 0 },
@@ -9,6 +11,7 @@ int	main(void) {
 		{ strdup("test5"), 4 }
 	};
 
+	clock_t start = clock();
 	dll_t *restrict	list = dll_init(DLL_BIT_DFLT);
 
 	dll_pushfront(list, &s[0], sizeof(s[0]), DLL_BIT_DFLT, free_obj);
@@ -31,6 +34,9 @@ int	main(void) {
 	dll_printone(dll_findid(list, 1), print_object);
 
 	dll_free(list);
+
+	double res = (double)(clock() - start) / (double)CLOCKS_PER_SEC;
+	fprintf(stderr, "\n --- time: %lfms ---\n\n", res);
 
 	printf("dll_assert test after freed list:\n");
 	dll_assert(dll_delkey(list, match_obj2err));
