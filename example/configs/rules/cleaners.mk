@@ -11,7 +11,7 @@ fclean: clean
 	@$(ECHO) " | $(CLR_INVERT)deleted$(CLR_WHITE): $(NPWD)"
  endif
 
-del:
+del: clean_asms
 	@$(DEL) $(OBJS)
 	@$(DEL) $(NAME)
 
