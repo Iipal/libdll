@@ -391,6 +391,7 @@ static inline dll_obj_t	*dll_unlink(dll_t *restrict dll,
 		return NULL;
 	}
 
+	--dll->objs_count;
 	if (dll_obj->prev)
 		dll_obj->prev->next = dll_obj->next;
 	else
