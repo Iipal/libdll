@@ -1,8 +1,8 @@
 #include "header.h"
 
-int	print_object(const void *restrict obj_data) {
+int	print_object(const void *restrict obj_data, size_t idx) {
 	const struct s_test *restrict test_data = obj_data;
-	printf("\t%d -- '%s'\n", test_data->val, test_data->str);
+	printf("\t[%2zu]: %d -- '%s'\n", idx, test_data->val, test_data->str);
 	return 0;
 }
 

@@ -8,7 +8,7 @@ struct s_test {
 	int		val;
 };
 
-int	print_object(const void *restrict obj_data);
+int	print_object(const void *restrict obj_data, size_t idx);
 void	free_obj(void *restrict data);
 
 int	match_obj1(const void *restrict obj_data);

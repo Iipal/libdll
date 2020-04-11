@@ -28,10 +28,15 @@ int	main(void) {
 	dll_print(list, print_object);
 
 	printf("\nPrint object founded by index 2 from end:\n");
-	dll_printone(dll_findidr(list, 2), print_object);
+	dll_obj_t *restrict	found = dll_findidr(list, 2);
+	dll_printone(found, print_object, dll_getid(list, found));
 
 	printf("Print object founded by index 1 from start:\n");
-	dll_printone(dll_findid(list, 1), print_object);
+	found = dll_findid(list, 1);
+	dll_printone(found, print_object, dll_getid(list, found));
+
+	printf("Print 2 objects from index 2:\n");
+	dll_printn(list, print_object, 2, 2);
 
 	dll_free(list);
 
