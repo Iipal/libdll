@@ -79,7 +79,14 @@ static inline char	*dll_strerr(dll_errno_t err_num) {
  * to last setted-up errno code in libdll
  */
 static inline void	dll_perror(const char *restrict str) {
-	fprintf(stderr, "%s: %s.\n", str, dll_strerr(*__dll_get_errno_num()));
+	char *errstr = dll_strerr(*__dll_get_errno_num());
+	if (str && *str) {
+		fwrite(str, strlen(str), 1, stderr);
+		fputc(':', stderr);
+		fputc(' ', stderr);
+	}
+	fwrite(errstr, strlen(errstr), 1, stderr);
+	fputc('\n', stderr);
 }
 
 #endif /* LIBDLL_ERRNO_H */

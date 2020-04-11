@@ -129,7 +129,7 @@ static inline dll_obj_t	*dll_getlast(const dll_t *restrict dll);
 static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj);
 /**
  * Get a size of data in object
- * \return NULL if:
+ * \return 0 if:
  *  - \param dll_obj is NULL or data size inside object is 0
  */
 static inline size_t	dll_getdatasize(const dll_obj_t *restrict dll_obj);
@@ -182,34 +182,34 @@ static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
  * - \param dll is NULL
  * - if DLL_BIT_EIGN is not specified:
  * -- list \param dll hasn't any objects
- * -- object with \param index id \param dll list doesn't exist
+ * -- object with \param index doesn't exist in \param dll list
  */
 static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index);
 // The same as dll_findid but starts from end
 static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index);
 
 /**
- * Print \param dll_obj object data via \param fn_print handler
+ * Print \param dll_obj object data via \param fn_print_idx handler
  * \param idx for external-use in most cases is useless,
- *  it's just go to second argument of \param fn_print
+ *  it's just go to second argument of \param fn_print_idx
  *
  * \return -1 if:
- * - \param dll_obj or \param fn_print is NULL
+ * - \param dll_obj or \param fn_print_idx is NULL
  * - if DLL_BIT_EIGN is not specified:
  * -- \param dll_obj data pointed to NULL
  */
 static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
 		f_dll_obj_handler_index fn_print_idx, size_t idx);
 /**
- * Print all objects via \param fn_print from begin
+ * Print all objects via \param fn_print_idx from begin
  *
  * \return false if:
  * - \param dll is NULL
- * - if DLL_Bit_EIGN is not specified:
- * -- \param fn_print is NULL
+ * - if DLL_BIT_EIGN is not specified:
+ * -- \param fn_print_idx is NULL
  * -- list \param dll hasn't any objects
  * -- data inside at least 1 object is pointed to NULL
- * -- \param fn_print handler returns a negative value
+ * -- \param fn_print_idx handler returns a negative value
  */
 static inline bool	dll_print(const dll_t *restrict dll,
 		f_dll_obj_handler_index fn_print_idx);

@@ -77,7 +77,7 @@ static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
 	dll_obj_t *restrict new_obj = dll_new(data, data_size, obj_bits, fn_del);
 	if (__dll_unlikely(!!new_obj))
 		dll_pushfrontobj(dll, new_obj);
-	return NULL;
+	return new_obj;
 }
 
 static inline dll_obj_t	*dll_pushfrontobj(dll_t *restrict dll,
