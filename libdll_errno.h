@@ -6,6 +6,7 @@
 # endif
 
 # include <assert.h>
+# include <string.h>
 
 typedef enum __e_dll_errno {
 	__DLL_ESUCCESS,
