@@ -220,14 +220,18 @@ static inline bool	dll_printr(const dll_t *restrict dll,
 /**
  * The same as dll_print but printing at most \param n objects starts
  *  from index \param start via \param fn_print_idx to end of list
+ *
+ * \return a count of printed objects
  */
-static inline bool	dll_printn(const dll_t *restrict dll,
+static inline size_t	dll_printn(const dll_t *restrict dll,
 		f_dll_obj_handler_index fn_print_idx, size_t start, size_t n);
 /**
  * The same as dll_print but printing at most \param n objects starts
  *  from index \param start via \param fn_print_idx to start of list
+ *
+ * \return a count of printed objects
  */
-static inline bool	dll_printnr(const dll_t *restrict dll,
+static inline size_t	dll_printnr(const dll_t *restrict dll,
 		f_dll_obj_handler_index fn_print_idx, size_t start, size_t n);
 /**
  * Removing all links to a given object in the list and return it
