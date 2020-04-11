@@ -78,6 +78,8 @@ dll_getdatasize(my_obj);
 dll_getprev(my_obj);
 // Get pointer to next object
 dll_getnext(my_obj);
+// Get object index in a list
+dll_getid(my_list, my_obj);
 ```
 
 ### Find\Delete list object by specified data via handler function from head\end:
@@ -138,9 +140,9 @@ dll_freeobj(dll_unlink(my_obj));
 
 ### Print all objects data from head\end via handler function:
 ```c
-int print_my_obj(void *restrict data) {
+int print_my_obj(void *restrict data, size_t index) {
     struct s_test *restrict tptr = data;
-    printf("%s(%zu)\n", tptr->str, tptr->len);
+    printf("\t[%2zu]: %s(%zu)\n", index, tptr->str, tptr->len);
     if (1 >= tptr->len)
         return -1;
     return 0;
@@ -150,11 +152,19 @@ int print_my_obj(void *restrict data) {
  * If print-handler returns a -1
  *  or any other negative value printing will stop
  *
- * dll_printr - start printing from end of list
- * dll_printone - print info about only given object
- *  and doesn't check handler return value
+ * dll_print - print all objects in list via handler print_my_obj from start
+ * dll_printr - print all objects in list via handler print_my_obj from end
+ * dll_printone - printing given object via handler print_my_obj,
+ *  3rd argument is useless for external use, it's needed for internal works,
+ *  but you can use function dll_getid for it
+ * dll_printn - print at most 10 objects from list starts from index 1 to end of list
+ * dll_printnr - print at most 10 objects from list starts from index 1 to start of list
  */
 dll_print(my_list, print_my_obj);
+dll_printr(my_list, print_my_obj);
+dll_printone(my_obj, print_my_obj, dll_getid(my_obj));
+dll_printn(my_list, print_my_obj, 1, 10);
+dll_printnr(my_list, print_my_obj, 1, 10);
 ```
 
 ### Free memory:
