@@ -218,11 +218,15 @@ static inline bool	dll_printr(const dll_t *restrict dll,
 		f_dll_obj_handler_index fn_print_idx);
 
 /**
- * The same as dll_print but prints at least \param n objects starts from index \param start
+ * The same as dll_print but printing at most \param n objects starts
+ *  from index \param start via \param fn_print_idx to end of list
  */
 static inline bool	dll_printn(const dll_t *restrict dll,
 		f_dll_obj_handler_index fn_print_idx, size_t start, size_t n);
-// The same as dll_printn but starts printing from end
+/**
+ * The same as dll_print but printing at most \param n objects starts
+ *  from index \param start via \param fn_print_idx to start of list
+ */
 static inline bool	dll_printnr(const dll_t *restrict dll,
 		f_dll_obj_handler_index fn_print_idx, size_t start, size_t n);
 /**
