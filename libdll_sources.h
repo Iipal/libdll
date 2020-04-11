@@ -127,7 +127,7 @@ static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 
 static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
 		dll_obj_t *restrict dll_obj) {
-	if (!dll || !dll_obj) {
+	if (__dll_unlikely(!dll || !dll_obj)) {
 		__dll_seterrno(__DLL_ENULL);
 		return NULL;
 	}
@@ -327,6 +327,36 @@ static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index) {
 	for (size_t indx = 1; match && indx != index; ++indx, match = match->prev)
 		;
 	return match;
+}
+
+static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n) {
+	if (__dll_unlikely(!dll)) {
+		__dll_seterrno(__DLL_ENULL);
+		return NULL;
+	}
+	bool is_not_ign_err = !__dll_is_bit(dll->bits, DLL_BIT_EIGN);
+	if (__dll_unlikely((!dll->head || start > dll_getsize(dll)) && is_not_ign_err)) {
+		__dll_seterrno(!dll->head ? __DLL_EEMPTY : __DLL_EOVERFLOW);
+		return NULL;
+	}
+
+	dll_t *restrict	new_list = dll_init(dll->bits);
+	if (__dll_unlikely(!new_list)) {
+		__dll_seterrno(__DLL_ENULL);
+		return NULL;
+	}
+
+	dll_obj_t *restrict	iobj = dll_findid(dll, start);
+	while (iobj && n--) {
+		dll_bits_t	new_bits = (iobj->bits & ~(DLL_BIT_DUP | DLL_BIT_FREE));
+		dll_obj_t *restrict	new_obj_ptr = dll_pushback(new_list,
+			iobj->data, iobj->data_size, new_bits, NULL);
+		if (__dll_unlikely(!new_obj_ptr && is_not_ign_err)) {
+			dll_free(new_list);
+			return NULL;
+		}
+	}
+	return new_list;
 }
 
 static inline int	dll_printone(const dll_obj_t *restrict dll_obj,

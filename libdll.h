@@ -189,6 +189,19 @@ static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index);
 static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index);
 
 /**
+ * Creating a duplicate list with at most \param n objects from \param dll list, starting from \param start indexed object
+ *
+ * \return NULL if:
+ * - \param dll is NULL
+ * - failed to allocate memory for new list
+ * - if DLL_BIT_EIGN is not specified:
+ * -- list \param dll hasn't any objects
+ * -- object with index \param start doesn't exist in \param dll list
+ * -- failed to duplicate at least 1 object
+ */
+static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n);
+
+/**
  * Print \param dll_obj object data via \param fn_print_idx handler
  * \param idx for external-use in most cases is useless,
  *  it's just go to second argument of \param fn_print_idx
