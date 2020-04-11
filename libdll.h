@@ -4,6 +4,7 @@
 # define _GNU_SOURCE
 
 # include <stdbool.h>
+# include <limits.h>
 
 # include "libdll_bits.h"
 # include "libdll_assert.h"
@@ -144,6 +145,16 @@ static inline dll_obj_t	*dll_getprev(const dll_obj_t *restrict dll_obj);
  *  - \param dll_obj is NULL
  */
 static inline dll_obj_t	*dll_getnext(const dll_obj_t *restrict dll_obj);
+/**
+ * Get a index of object in list
+ * \return __SIZE_MAX__ if:
+ *  - \param dll or \param dll_obj is NULL
+ *  - if a pointer to \param dll_obj is not pointing to any object in \param dll list
+ *  - if DLL_BIT_EIGN is not specified:
+ *  -- list \param dll hasn't any objects
+ *
+ */
+static inline size_t	dll_getid(const dll_t *restrict dll, const dll_obj_t *restrict dll_obj);
 
 /**
  * Find object by data(key) from start
@@ -178,7 +189,9 @@ static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index);
 static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index);
 
 /**
- * Print object data via \param fn_print handler
+ * Print \param dll_obj object data via \param fn_print handler
+ * \param idx for external-use in most cases is useless,
+ *  it's just go to second argument of \param fn_print
  *
  * \return -1 if:
  * - \param dll_obj or \param fn_print is NULL
@@ -186,7 +199,7 @@ static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index);
  * -- \param dll_obj data pointed to NULL
  */
 static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
-		f_dll_obj_handler fn_print);
+		f_dll_obj_handler_index fn_print_idx, size_t idx);
 /**
  * Print all objects via \param fn_print from begin
  *
@@ -199,11 +212,19 @@ static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
  * -- \param fn_print handler returns a negative value
  */
 static inline bool	dll_print(const dll_t *restrict dll,
-		f_dll_obj_handler fn_print);
+		f_dll_obj_handler_index fn_print_idx);
 // The same as dll_print but starts printing from end
 static inline bool	dll_printr(const dll_t *restrict dll,
-		f_dll_obj_handler fn_print);
+		f_dll_obj_handler_index fn_print_idx);
 
+/**
+ * The same as dll_print but prints at least \param n objects starts from index \param start
+ */
+static inline bool	dll_printn(const dll_t *restrict dll,
+		f_dll_obj_handler_index fn_print_idx, size_t start, size_t n);
+// The same as dll_printn but starts printing from end
+static inline bool	dll_printnr(const dll_t *restrict dll,
+		f_dll_obj_handler_index fn_print_idx, size_t start, size_t n);
 /**
  * Removing all links to a given object in the list and return it
  * Links to next and previous list object will be saved in the return object

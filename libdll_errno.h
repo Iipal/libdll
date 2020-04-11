@@ -26,6 +26,8 @@ typedef enum __e_dll_errno {
 # define __DLL_ENEGHANDLER __DLL_ENEGHANDLER
 	__DLL_EOVERFLOW,
 # define __DLL_EOVERFLOW __DLL_EOVERFLOW
+	__DLL_EOUTOFRANGE,
+# define __DLL_EOUTOFRANGE __DLL_EOUTOFRANGE
 	__DLL_EMASK,
 # define __DLL_EMASK __DLL_EMASK
 } __attribute__((packed)) dll_errno_t;
@@ -66,7 +68,7 @@ static inline char	*dll_strerr(dll_errno_t err_num) {
 		"Operations with NULL-pointer", "Operations with empty list",
 		"Operations with empty object", "No handler provided",
 		"Handler returned a negative value", "List indexing overflow",
-		"Invalid bits mask"
+		"List indexing out of range", "Invalid bits mask"
 	};
 
 	return __err_strs[err_num];
