@@ -64,13 +64,6 @@ static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
  */
 static inline dll_obj_t	*dll_pushfrontobj(dll_t *restrict dll,
 		dll_obj_t *restrict dll_obj);
-/**
- * Delete first object in list
- *
- * \return false if:
- *  - \param dll is NULL or list \param dll hasn't any objects
- */
-static inline bool	dll_popfront(dll_t *restrict dll);
 
 /**
  * Creating a new list object at the end of list from given parameters
@@ -94,6 +87,14 @@ static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
  */
 static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
 		dll_obj_t *restrict dll_obj);
+
+/**
+ * Delete first object in list
+ *
+ * \return false if:
+ *  - \param dll is NULL or list \param dll hasn't any objects
+ */
+static inline bool	dll_popfront(dll_t *restrict dll);
 /**
  * Delete last object in list
  *
@@ -263,6 +264,17 @@ static inline dll_obj_t	*dll_unlink(dll_t *restrict dll,
  * - some errors occurred when calling dll_unlink or dll_freeobj
  */
 static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict dll_obj);
+/**
+ * Delete links and free it to at most \param n object in \param dll list, starting from \param start indexed object
+ *
+ * \return count of deleted objects otherwise 0 if:
+ * - \param dll is NULL
+ * - if DLL_BIT_EIGN is not specified:
+ * -- list \param dll hasn't any objects
+ * -- object with index \param start doesn't exist in \param dll list
+ * -- some errors occured when calling dll_del for at least 1 object
+ */
+static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n);
 
 /**
  * Delete object by data(key) from start

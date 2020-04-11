@@ -98,22 +98,6 @@ static inline dll_obj_t	*dll_pushfrontobj(dll_t *restrict dll,
 	return dll_obj;
 }
 
-static inline bool	dll_popfront(dll_t *restrict dll) {
-	if (__dll_unlikely(!dll || !dll->head)) {
-		__dll_seterrno(!dll ? __DLL_ENULL : __DLL_EEMPTY);
-		return false;
-	}
-
-	dll_obj_t *restrict save = dll->head->next;
-	dll_del(dll, dll->head);
-	dll->head = save;
-	if (!dll->head) {
-		__dll_seterrno(__DLL_EEMPTY);
-		dll->last = NULL;
-	}
-	return true;
-}
-
 static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 		void *restrict data,
 		size_t data_size,
@@ -142,6 +126,22 @@ static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
 		dll->last = dll_obj;
 	}
 	return dll_obj;
+}
+
+static inline bool	dll_popfront(dll_t *restrict dll) {
+	if (__dll_unlikely(!dll || !dll->head)) {
+		__dll_seterrno(!dll ? __DLL_ENULL : __DLL_EEMPTY);
+		return false;
+	}
+
+	dll_obj_t *restrict save = dll->head->next;
+	dll_del(dll, dll->head);
+	dll->head = save;
+	if (!dll->head) {
+		__dll_seterrno(__DLL_EEMPTY);
+		dll->last = NULL;
+	}
+	return true;
 }
 
 static inline bool	dll_popback(dll_t *restrict dll) {
@@ -307,8 +307,8 @@ static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index) {
 	}
 
 	dll_obj_t *restrict	match = dll->head;
-	for (size_t indx = 1; match && indx != index; ++indx, match = match->next)
-		;
+	for (size_t i = 1; match && (i != index); i++)
+		match = match->next;
 	return match;
 }
 
@@ -324,8 +324,8 @@ static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index) {
 	}
 
 	dll_obj_t *restrict	match = dll->last;
-	for (size_t indx = 1; match && indx != index; ++indx, match = match->prev)
-		;
+		for (size_t i = 1; match && (i != index); i++)
+		match = match->prev;
 	return match;
 }
 
@@ -535,6 +535,22 @@ static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict dll_obj) {
 	if (__dll_unlikely(!del_obj))
 		return false;
 	return dll_freeobj(del_obj);
+}
+
+static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n) {
+	dll_obj_t *restrict	iobj = dll_findid(dll, start);
+	if (!iobj)
+		return 0;
+
+	bool is_not_ign_err = !__dll_is_bit(dll->bits, DLL_BIT_EIGN);
+	size_t	i = 0;
+	for (; iobj && n; iobj = dll_findid(dll, start)) {
+		if (__dll_unlikely(!dll_del(dll, iobj) && is_not_ign_err))
+			return 0;
+		--n;
+		++i;
+	}
+	return i;
 }
 
 static inline bool	dll_delkey(dll_t *restrict dll,
