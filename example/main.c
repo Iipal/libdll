@@ -10,8 +10,8 @@ int	main(void) {
 		{ strdup("test4"), 3 },
 		{ strdup("test5"), 4 }
 	};
-
-	clock_t start = clock();
+	struct timespec start, end;
+	clock_gettime(CLOCK_REALTIME, &start);
 	dll_t *restrict	list = dll_init(DLL_BIT_DFLT);
 
 	dll_pushfront(list, &s[0], sizeof(s[0]), DLL_BIT_DFLT, free_obj);
@@ -22,9 +22,8 @@ int	main(void) {
 	dll_printr(list, print_object);
 
 	printf("\ndeleteing object with val == 1 and str == 'test2':\n");
-	if (dll_delkey(list, match_obj1, NULL)) {
-		printf("\tthe desired object successfully deleted\n");
-	}
+	dll_assert(dll_delkey(list, match_obj1, &s[1]));
+	printf("\tthe desired object successfully deleted\n");
 	dll_print(list, print_object);
 
 	printf("\nPrint object founded by index 2 from end:\n");
@@ -35,10 +34,10 @@ int	main(void) {
 	found = dll_findid(list, 1);
 	dll_printone(found, print_object, dll_getid(list, found));
 
-	printf("Print 2 objects from index 2:\n");
+	printf("Print 2 objects from start from index 2:\n");
 	dll_printn(list, print_object, 2, 2);
 
-	printf("Duplicate 2 objects from position 1 from list with %zu objects:\n", dll_getsize(list));
+	printf("\nDuplicate 2 objects from position 1 from list with %zu objects:\n", dll_getsize(list));
 	dll_t *restrict	dup = dll_dup(list, 1, 2);
 	dll_print(dup, print_object);
 
@@ -48,12 +47,10 @@ int	main(void) {
 
 	dll_free(&list);
 
-	double res = (double)(clock() - start) / (double)CLOCKS_PER_SEC;
-	fprintf(stderr, "\n --- time: %lfms ---\n\n", res);
+	clock_gettime(CLOCK_REALTIME, &end);
+	double time_spent = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;
+	fprintf(stderr, "\n --- time: %lf sec. ---\n\n", time_spent);
 
-	struct s_test	t = { strdup("i'm unfree list object"), -42 };
-	dll_t *unfree = dll_init(DLL_BIT_EIGN);
-	dll_pushback(unfree, &t, sizeof(t), DLL_BIT_EIGN, free_obj);
-	dll_print(unfree, print_object);
-
+	printf("\t!!! Test dll_assert for free list !!!\n\n");
+	dll_assert(dll_delkey(list, match_obj2, NULL));
 }
