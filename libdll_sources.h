@@ -157,6 +157,7 @@ static inline bool	dll_popfront(dll_t *restrict dll) {
 	if (!dll->head) {
 		__dll_seterrno(__DLL_EEMPTY);
 		dll->last = NULL;
+		return false;
 	}
 	return true;
 }
@@ -249,7 +250,7 @@ static inline size_t	dll_getid(const dll_t *restrict dll, const dll_obj_t *restr
 }
 
 static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
-		f_dll_obj_handler fn_search) {
+		f_dll_obj_handler fn_search, void *restrict any_data) {
 	if (__dll_unlikely(!dll)) {
 		__dll_seterrno(__DLL_ENULL);
 		return NULL;
@@ -268,7 +269,7 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 			return NULL;
 		}
 
-		int ret = fn_search(match->data);
+		int ret = fn_search(match->data, any_data);
 		if (__dll_likely(!ret)) {
 			return (match);
 		} else if (__dll_unlikely(0 > ret && is_not_ign_err)) {
@@ -281,7 +282,7 @@ static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
 }
 
 static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
-		f_dll_obj_handler fn_search) {
+		f_dll_obj_handler fn_search, void *restrict any_data) {
 	if (__dll_unlikely(!dll)) {
 		__dll_seterrno(__DLL_ENULL);
 		return NULL;
@@ -300,7 +301,7 @@ static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
 			return NULL;
 		}
 
-		int ret = fn_search(match->data);
+		int ret = fn_search(match->data, any_data);
 		if (__dll_likely(!ret)) {
 			return (match);
 		} else if (__dll_unlikely(0 > ret && is_not_ign_err)) {
@@ -571,8 +572,8 @@ static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n) {
 }
 
 static inline bool	dll_delkey(dll_t *restrict dll,
-		f_dll_obj_handler fn_search_del) {
-	dll_obj_t *restrict del = dll_findkey(dll, fn_search_del);
+		f_dll_obj_handler fn_search_del, void *restrict any_data) {
+	dll_obj_t *restrict del = dll_findkey(dll, fn_search_del, any_data);
 	if (__dll_unlikely(!del))
 		return false;
 	bool ret = dll_del(dll, del);
@@ -584,8 +585,8 @@ static inline bool	dll_delkey(dll_t *restrict dll,
 }
 
 static inline bool	dll_delkeyr(dll_t *restrict dll,
-		f_dll_obj_handler fn_search_del) {
-	dll_obj_t *restrict del = dll_findkeyr(dll, fn_search_del);
+		f_dll_obj_handler fn_search_del, void *restrict any_data) {
+	dll_obj_t *restrict del = dll_findkeyr(dll, fn_search_del, any_data);
 	if (__dll_unlikely(!del))
 		return false;
 	bool ret = dll_del(dll, del);

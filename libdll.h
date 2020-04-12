@@ -179,6 +179,7 @@ static inline size_t	dll_getid(const dll_t *restrict dll, const dll_obj_t *restr
  *
  * \return a pointer to a matched object if \param fn_search returns a zero.
  * Otherwise, if the desired object doesn't exist or \param fn_search handler returns a negative value - NULL will be returned.
+ * \param any_data just going to the second argument of your handler if you need additional data to compare data inside the object
  *
  * Also NULL returns in cases when:
  * - \param dll is NULL
@@ -188,10 +189,10 @@ static inline size_t	dll_getid(const dll_t *restrict dll, const dll_obj_t *restr
  * -- data inside at least 1 object is pointed to NULL
 */
 static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
-		f_dll_obj_handler fn_search);
+		f_dll_obj_handler fn_search, void *restrict any_data);
 // The same as dll_findkey but starts seraching from end
 static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
-		f_dll_obj_handler fn_search);
+		f_dll_obj_handler fn_search, void *restrict any_data);
 
 /**
  * Find object by index from start(indexing starts from 1)
@@ -294,17 +295,16 @@ static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict dll_obj);
 static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n);
 
 /**
- * Delete object by data(key) from start
- * via \param fn_search_del and dll_findkey
- *
+ * Delete object by data(key) from start via \param fn_search_del and dll_findkey
+ * \param any_data just going to the second argument of your handler if you need additional data to compare data inside the object
  * \return false if:
  * - some errors occurred when calling dll_findkey or dll_del
  */
 static inline bool	dll_delkey(dll_t *restrict dll,
-		f_dll_obj_handler fn_search_del);
+		f_dll_obj_handler fn_search_del, void *restrict any_data);
 // The same as dll_delkey but using dll_findkeyr instead of dll_findkey
 static inline bool	dll_delkeyr(dll_t *restrict dll,
-		f_dll_obj_handler fn_search_del);
+		f_dll_obj_handler fn_search_del, void *restrict any_data);
 
 /**
  * Delete object by index via dll_findid
