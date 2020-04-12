@@ -43,8 +43,10 @@
 # include "libdll_structs.h"
 # include "libdll_bits.h"
 # include "libdll_errno.h"
+# include "libdll_gc.h"
 
 static inline dll_t	*dll_init(dll_bits_t bits) {
+	static bool	is_atexit_gc_inited = false;
 	bool is_not_ign = !__dll_is_bit(bits, DLL_BIT_EIGN);
 	if (__dll_unlikely(__DLL_MAX_VALID_LIST_MASK < bits && is_not_ign)) {
 		__dll_seterrno(__DLL_EMASK);
@@ -57,6 +59,11 @@ static inline dll_t	*dll_init(dll_bits_t bits) {
 		return NULL;
 	}
 	out->bits = bits;
+	if (!is_atexit_gc_inited) {
+		is_atexit_gc_inited = true;
+		atexit(__dll_freegc_atexit);
+	}
+	__dll_addgcptr(out);
 	return out;
 }
 
@@ -631,6 +638,9 @@ static inline bool	dll_free(dll_t *restrict *restrict dll) {
 		}
 		return false;
 	}
+
+	__dll_unlinkgcptr(__dll);
+
 	while (dll_popfront(__dll))
 		;
 	free(__dll);
