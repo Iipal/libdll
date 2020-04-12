@@ -25,7 +25,7 @@
 # include <assert.h>
 # include <string.h>
 
-typedef enum __e_dll_errno {
+typedef enum {
 	__DLL_ESUCCESS,
 # define __DLL_ESUCCESS __DLL_ESUCCESS
 	__DLL_ECALLOC,
@@ -42,62 +42,57 @@ typedef enum __e_dll_errno {
 # define __DLL_ENOHANDLER __DLL_ENOHANDLER
 	__DLL_ENEGHANDLER,
 # define __DLL_ENEGHANDLER __DLL_ENEGHANDLER
-	__DLL_EOVERFLOW,
-# define __DLL_EOVERFLOW __DLL_EOVERFLOW
 	__DLL_EOUTOFRANGE,
 # define __DLL_EOUTOFRANGE __DLL_EOUTOFRANGE
 	__DLL_EMASK,
 # define __DLL_EMASK __DLL_EMASK
-} __attribute__((packed)) dll_errno_t;
+} __attribute__((packed)) __dll_internal_errcode_t;
 
-extern char	*__progname;
+typedef struct {
+	char	*__errfn;
+	char	*__errfile;
+	unsigned int	__errln;
+	__dll_internal_errcode_t	__errcode;
+} __attribute__((aligned(__BIGGEST_ALIGNMENT__))) __dll_internal_errdata_t;
 
-static dll_errno_t	*__dll_get_errno_num(void) {
-	static dll_errno_t errno_num;
-	return &errno_num;
+static __dll_internal_errdata_t	*__dll_geterrdata(void) {
+	static __dll_internal_errdata_t	__errno_data;
+	return &__errno_data;
 }
-static unsigned int	*__dll_get_errno_line(void) {
-	static unsigned int	errno_line;
-	return &errno_line;
-}
-static char **__dll_get_errno_func(void) {
-	static char	*errno_func;
-	return &errno_func;
-}
-static char **__dll_get_errno_file(void) {
-	static char	*errno_file;
-	return &errno_file;
+
+static inline void	__dll_errflush(void) {
+	*__dll_geterrdata() = (__dll_internal_errdata_t) {
+		"(null)", "(null)", 0, __DLL_ESUCCESS
+	};
 }
 
 # define __dll_seterrno(_errcode) __extension__({ \
-	*__dll_get_errno_num() = (_errcode); \
-	*__dll_get_errno_line() = __LINE__; \
-	*__dll_get_errno_file() = __FILE__; \
-	*__dll_get_errno_func() = (char*)__ASSERT_FUNCTION; \
+	*__dll_geterrdata() = (__dll_internal_errdata_t) { \
+		(char*)__ASSERT_FUNCTION, __FILE__, __LINE__, (_errcode) \
+	}; \
 	__ASSERT_VOID_CAST(0); \
 })
 
 /**
- * Get a error message corresponding to \param err_num error code
+ * Get a error message corresponding to \param errno_code error code
  */
-static inline char	*dll_strerr(dll_errno_t err_num) {
+static inline char	*dll_strerr(int errno_code) {
 	static char	*__err_strs[] = {
 		"Success", "Memory calloc-ation error", "Memory duplication error",
 		"Operations with NULL-pointer", "Operations with empty list",
 		"Operations with empty object", "No handler provided",
-		"Handler returned a negative value", "List indexing overflow",
-		"List indexing out of range", "Invalid bits mask"
+		"Handler returned a negative value", "List indexing out of range",
+		"Invalid bits mask"
 	};
 
-	return __err_strs[err_num];
+	return __err_strs[errno_code];
 }
 
 /**
- * Permanently print error message corresponding
- * to last setted-up errno code in libdll
+ * Permanently print error message corresponding to last setted-up errno code in libdll
  */
 static inline void	dll_perror(const char *restrict str) {
-	char *errstr = dll_strerr(*__dll_get_errno_num());
+	char *errstr = dll_strerr(__dll_geterrdata()->__errcode);
 	if (str && *str) {
 		fwrite(str, strlen(str), 1, stderr);
 		fputc(':', stderr);

@@ -38,11 +38,8 @@ extern char	*__progname;
 static inline void __THROWNL __attribute__((noreturn))
 __dll_assert_fail(const char *assertion, const char *file,
 		unsigned int line, const char *function) {
-	unsigned int dllerr_line = *__dll_get_errno_line();
-	char *dllerr_func = *__dll_get_errno_func();
-	char *dllerr_file = *__dll_get_errno_file();
-	dll_errno_t dllerr_num = *__dll_get_errno_num();
-	char *dll_err = dll_strerr(dllerr_num);
+	__dll_internal_errdata_t *restrict	errdata = __dll_geterrdata();
+	char	*err = dll_strerr(errdata->__errcode);
 
 	fprintf(stderr, "%s%s%s:%u: %s%sAssertion `%s` failed.\n"
 		" -- libdll: %s:%u: %s%s%s.\n",
@@ -50,9 +47,9 @@ __dll_assert_fail(const char *assertion, const char *file,
 		file, line,
 		function ? function : "", function ? ": " : "",
 		assertion, // end of default assertion error message
-		dllerr_file ? dllerr_file : "", dllerr_line,
-		dllerr_func ? dllerr_func : "",
-		dllerr_func ? ": " : "", dll_err);
+		errdata->__errfile ? errdata->__errfile : "", errdata->__errln,
+		errdata->__errfn ? errdata->__errfn : "",
+		errdata->__errfn ? ": " : "", err);
 	fflush(stderr);
 	abort();
 }

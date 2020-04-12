@@ -25,10 +25,8 @@
 # define __dll_is_bit(bits, bit) (((bits) & (bit)) == (bit))
 
 /**
- * All macroses specified for all objects in a linked list has aprefix:
- * DLL_GBIT_* (dll_init only)
  * All macroses specification for only 1 object in a linked list has a prefix:
- * DLL_BIT_* (dll_new, dll_push*)
+ * DLL_BIT_* (dll_init, dll_new, dll_push*)
  */
 typedef unsigned int dll_bits_t;
 
