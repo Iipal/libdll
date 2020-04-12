@@ -22,7 +22,7 @@ int	main(void) {
 	dll_printr(list, print_object);
 
 	printf("\ndeleteing object with val == 1 and str == 'test2':\n");
-	if (dll_delkey(list, match_obj1)) {
+	if (dll_delkey(list, match_obj1, NULL)) {
 		printf("\tthe desired object successfully deleted\n");
 	}
 	dll_print(list, print_object);
@@ -38,11 +38,22 @@ int	main(void) {
 	printf("Print 2 objects from index 2:\n");
 	dll_printn(list, print_object, 2, 2);
 
-	dll_free(list);
+	printf("Duplicate 2 objects from position 1 from list with %zu objects:\n", dll_getsize(list));
+	dll_t *restrict	dup = dll_dup(list, 1, 2);
+	dll_print(dup, print_object);
+
+	printf("Duplicated list can be succesfully deleted without deleting anything from parent-list\n");
+	dll_free(&dup);
+	dll_print(list, print_object);
+
+	dll_free(&list);
 
 	double res = (double)(clock() - start) / (double)CLOCKS_PER_SEC;
 	fprintf(stderr, "\n --- time: %lfms ---\n\n", res);
 
-	printf("dll_assert test after freed list:\n");
-	dll_assert(dll_delkey(list, match_obj2err));
+	struct s_test	t = { strdup("i'm unfree list object"), -42 };
+	dll_t *unfree = dll_init(DLL_BIT_EIGN);
+	dll_pushback(unfree, &t, sizeof(t), DLL_BIT_EIGN, free_obj);
+	dll_print(unfree, print_object);
+
 }
