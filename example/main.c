@@ -26,6 +26,7 @@ int	main(void) {
 	printf("\tthe desired object successfully deleted\n");
 	dll_print(list, print_object);
 
+
 	printf("\nPrint object founded by index 2 from end:\n");
 	dll_obj_t *restrict	found = dll_findidr(list, 2);
 	dll_printone(found, print_object, dll_getid(list, found));
@@ -36,6 +37,11 @@ int	main(void) {
 
 	printf("Print 2 objects from start from index 2:\n");
 	dll_printn(list, print_object, 2, 2);
+
+	printf("\nHandler return a negative value:\n");
+	dll_obj_t *restrict	obj = dll_findkey(list, match_obj2err, &s[2]);
+	if (!obj)
+		dll_perror("\tdll_findkey");
 
 	printf("\nDuplicate 2 objects from position 1 from list with %zu objects:\n", dll_getsize(list));
 	dll_t *restrict	dup = dll_dup(list, 1, 2);
@@ -52,5 +58,5 @@ int	main(void) {
 	fprintf(stderr, "\n --- time: %lf sec. ---\n\n", time_spent);
 
 	printf("\t!!! Test dll_assert for free list !!!\n\n");
-	dll_assert(dll_delkey(list, match_obj2, NULL));
+	dll_assert(dll_delkey(list, match_obj2, &s[2]));
 }
