@@ -322,7 +322,7 @@ static inline bool	dll_delidr(dll_t *restrict dll, size_t index);
  * \return false if:
  * - \param dll is NULL or list \param dll hasn't any objects
  */
-static inline bool	dll_free(dll_t *restrict dll);
+static inline bool	dll_free(dll_t *restrict *restrict dll);
 /**
  * Free given object
  * This function execute \param fn_del if its was setted-up in dll_new\dll_push*

@@ -370,7 +370,7 @@ static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n) 
 		dll_obj_t *restrict	new_obj_ptr = dll_pushback(new_list,
 			iobj->data, iobj->data_size, new_bits, NULL);
 		if (__dll_unlikely(!new_obj_ptr && is_not_ign_err)) {
-			dll_free(new_list);
+			dll_free(&new_list);
 			return NULL;
 		}
 	}
@@ -621,16 +621,20 @@ static inline bool	dll_delidr(dll_t *restrict dll, size_t index) {
 	return ret;
 }
 
-static inline bool	dll_free(dll_t *restrict dll) {
-	if (__dll_unlikely(!dll || !dll->head)) {
-		__dll_seterrno(!dll ? __DLL_ENULL : __DLL_EEMPTY);
-		if (__dll_likely(!!dll))
-			free(dll);
+static inline bool	dll_free(dll_t *restrict *restrict dll) {
+	dll_t *restrict	__dll = *dll;
+	if (__dll_unlikely(!__dll || !__dll->head)) {
+		__dll_seterrno(!__dll ? __DLL_ENULL : __DLL_EEMPTY);
+		if (__dll_likely(!!__dll)) {
+			free(__dll);
+			*dll = NULL;
+		}
 		return false;
 	}
-	while (dll_popfront(dll))
+	while (dll_popfront(__dll))
 		;
-	free(dll);
+	free(__dll);
+	__dll = NULL;
 	return true;
 }
 
