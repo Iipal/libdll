@@ -60,12 +60,6 @@ static __dll_internal_errdata_t	*__dll_geterrdata(void) {
 	return &__errno_data;
 }
 
-static inline void	__dll_errflush(void) {
-	*__dll_geterrdata() = (__dll_internal_errdata_t) {
-		"(null)", "(null)", 0, __DLL_ESUCCESS
-	};
-}
-
 # define __dll_seterrno(_errcode) __extension__({ \
 	*__dll_geterrdata() = (__dll_internal_errdata_t) { \
 		(char*)__ASSERT_FUNCTION, __FILE__, __LINE__, (_errcode) \
