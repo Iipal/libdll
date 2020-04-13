@@ -59,7 +59,9 @@ static inline dll_t	*dll_init(dll_bits_t bits);
  *  Otherwise, pointer to allocated memory for new list object
  */
 static inline dll_obj_t	*dll_new(void *restrict data,
-		size_t size, dll_bits_t bits, dll_obj_free_fn_t fn_free);
+		size_t size,
+		dll_bits_t bits,
+		dll_obj_free_fn_t fn_free);
 
 /**
  * Creating a new list object at the front of list from given parameters
@@ -95,6 +97,7 @@ static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 		size_t data_size,
 		dll_bits_t obj_bits,
 		dll_obj_free_fn_t fn_free);
+
 /**
  * Add a \param dll_obj object to \param dll list
  * \return NULL if:
@@ -172,7 +175,8 @@ static inline dll_obj_t	*dll_getnext(const dll_obj_t *restrict dll_obj);
  *  -- list \param dll hasn't any objects
  *
  */
-static inline size_t	dll_getid(const dll_t *restrict dll, const dll_obj_t *restrict dll_obj);
+static inline size_t	dll_getid(const dll_t *restrict dll,
+		const dll_obj_t *restrict dll_obj);
 
 /**
  * Find object by data(key) from start
@@ -189,10 +193,12 @@ static inline size_t	dll_getid(const dll_t *restrict dll, const dll_obj_t *restr
  * -- data inside at least 1 object is pointed to NULL
 */
 static inline dll_obj_t	*dll_findkey(const dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search, void *restrict any_data);
+		dll_obj_handler_fn_t fn_search,
+		void *restrict any_data);
 // The same as dll_findkey but starts seraching from end
 static inline dll_obj_t	*dll_findkeyr(const dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search, void *restrict any_data);
+		dll_obj_handler_fn_t fn_search,
+		void *restrict any_data);
 
 /**
  * Find object by index from start(indexing starts from 1)
@@ -231,7 +237,8 @@ static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n);
  * -- \param dll_obj data pointed to NULL
  */
 static inline int	dll_printone(const dll_obj_t *restrict dll_obj,
-		dll_obj_handleridx_fn_t fn_print_idx, size_t idx);
+		dll_obj_handleridx_fn_t fn_print_idx,
+		size_t idx);
 /**
  * Print all objects via \param fn_print_idx from begin
  *
@@ -256,7 +263,9 @@ static inline bool	dll_printr(const dll_t *restrict dll,
  * \return a count of printed objects
  */
 static inline size_t	dll_printn(const dll_t *restrict dll,
-		dll_obj_handleridx_fn_t fn_print_idx, size_t start, size_t n);
+		dll_obj_handleridx_fn_t fn_print_idx,
+		size_t start,
+		size_t n);
 /**
  * The same as dll_print but printing at most \param n objects starts
  *  from index \param start via \param fn_print_idx to start of list
@@ -264,7 +273,9 @@ static inline size_t	dll_printn(const dll_t *restrict dll,
  * \return a count of printed objects
  */
 static inline size_t	dll_printnr(const dll_t *restrict dll,
-		dll_obj_handleridx_fn_t fn_print_idx, size_t start, size_t n);
+		dll_obj_handleridx_fn_t fn_print_idx,
+		size_t start,
+		size_t n);
 /**
  * Removing all links to a given object in the list and return it
  * Links to next and previous list object will be saved in the return object
@@ -301,10 +312,12 @@ static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n);
  * - some errors occurred when calling dll_findkey or dll_del
  */
 static inline bool	dll_delkey(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search_del, void *restrict any_data);
+		dll_obj_handler_fn_t fn_search_del,
+		void *restrict any_data);
 // The same as dll_delkey but using dll_findkeyr instead of dll_findkey
 static inline bool	dll_delkeyr(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search_del, void *restrict any_data);
+		dll_obj_handler_fn_t fn_search_del,
+		void *restrict any_data);
 
 /**
  * Delete object by index via dll_findid

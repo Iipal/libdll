@@ -44,8 +44,6 @@ typedef enum {
 # define __DLL_ENEGHANDLER __DLL_ENEGHANDLER
 	__DLL_EOUTOFRANGE,
 # define __DLL_EOUTOFRANGE __DLL_EOUTOFRANGE
-	__DLL_EMASK,
-# define __DLL_EMASK __DLL_EMASK
 } __attribute__((packed)) __dll_internal_errcode_t;
 
 typedef struct {
@@ -75,8 +73,7 @@ static inline char	*dll_strerr(int errno_code) {
 		"Success", "Memory calloc-ation error", "Memory duplication error",
 		"Operations with NULL-pointer", "Operations with empty list",
 		"Operations with empty object", "No handler provided",
-		"Handler returned a negative value", "List indexing out of range",
-		"Invalid bits mask"
+		"Handler returned a negative value", "List indexing out of range"
 	};
 
 	return __err_strs[errno_code];
