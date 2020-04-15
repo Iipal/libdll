@@ -11,6 +11,15 @@ void	free_obj(void *restrict data) {
 	free(t->str);
 }
 
+int	match_slash(const void *restrict obj, void *restrict ptr) {
+	(void)ptr;
+	const struct s_test *restrict	match_obj = obj;
+
+	if ('_' == *match_obj->str)
+		return 0;
+	return 1;
+}
+
 int	match_obj1(const void *restrict obj, void *restrict cmp) {
 	struct s_test *restrict cmp_data = cmp;
 	const struct s_test *restrict test_data = obj;

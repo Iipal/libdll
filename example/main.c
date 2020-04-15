@@ -4,11 +4,11 @@
 
 int	main(void) {
 	struct s_test	s[5] = {
-		{ strdup("test1"), 0 },
-		{ strdup("test2"), 1 },
-		{ strdup("test3"), 2 },
-		{ strdup("test4"), 3 },
-		{ strdup("test5"), 4 }
+		{ strdup(".test1"), 0 },
+		{ strdup(".test2"), 1 },
+		{ strdup("_test3"), 2 },
+		{ strdup("+test4"), 3 },
+		{ strdup("_test5"), 4 }
 	};
 	struct timespec start, end;
 	clock_gettime(CLOCK_REALTIME, &start);
@@ -19,7 +19,7 @@ int	main(void) {
 	dll_pushback(list, &s[2], sizeof(s[2]), DLL_BIT_DFLT, free_obj);
 	dll_pushfront(list, &s[3], sizeof(s[3]), DLL_BIT_DFLT, free_obj);
 	dll_pushback(list, &s[4], sizeof(s[4]), DLL_BIT_DFLT, free_obj);
-	dll_printr(list, print_object);
+	dll_print(list, print_object);
 
 	printf("\ndeleteing object with val == 1 and str == 'test2':\n");
 	dll_assert(dll_delkey(list, match_obj1, &s[1]));
@@ -43,12 +43,17 @@ int	main(void) {
 	if (!obj)
 		dll_perror("\tdll_findkey");
 
-	printf("\nDuplicate 2 objects from position 1 from list with %zu objects:\n", dll_getsize(list));
-	dll_t *restrict	dup = dll_dup(list, 1, 2);
+	printf("\nDuplicate 2 objects from position 2 from list with %zu objects:\n", dll_getsize(list));
+	dll_t *restrict	dup = dll_dup(list, 2, 2);
 	dll_print(dup, print_object);
 
-	printf("Duplicated list can be succesfully deleted without deleting anything from parent-list\n");
+	printf("\nDuplicate all strings in objects what started with '_':\n");
+	dll_t *restrict	dup_key = dll_dupkey(list, match_slash, NULL, 1, dll_getsize(list));
+	dll_print(dup_key, print_object);
+
+	printf("Duplicated lists can be succesfully deleted without deleting anything from parent-list\n");
 	dll_free(&dup);
+	dll_free(&dup_key);
 	dll_print(list, print_object);
 
 	dll_free(&list);
