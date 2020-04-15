@@ -26,7 +26,8 @@
 # include <string.h>
 
 typedef enum {
-	__DLL_ESUCCESS,
+	__DLL_EMIN_ERRNO,
+	__DLL_ESUCCESS = __DLL_EMIN_ERRNO,
 # define __DLL_ESUCCESS __DLL_ESUCCESS
 	__DLL_ECALLOC,
 # define __DLL_ECALLOC __DLL_ECALLOC
@@ -44,6 +45,7 @@ typedef enum {
 # define __DLL_ENEGHANDLER __DLL_ENEGHANDLER
 	__DLL_EOUTOFRANGE,
 # define __DLL_EOUTOFRANGE __DLL_EOUTOFRANGE
+	__DLL_EMAX_ERRNO
 } __attribute__((packed)) __dll_internal_errcode_t;
 
 typedef struct {
@@ -69,12 +71,20 @@ static __dll_internal_errdata_t	*__dll_geterrdata(void) {
  * Get a error message corresponding to \param errno_code error code
  */
 static inline char	*dll_strerr(int errno_code) {
-	static char	*__err_strs[] = {
-		"Success", "Memory calloc-ation error", "Memory duplication error",
-		"Operations with NULL-pointer", "Operations with empty list",
-		"Operations with empty object", "No handler provided",
-		"Handler returned a negative value", "List indexing out of range"
+	static char	*__err_strs[__DLL_EMAX_ERRNO] = {
+		[__DLL_ESUCCESS] = "Success",
+		[__DLL_ECALLOC] = "Memory calloc-ation error",
+		[__DLL_EDUP] = "Memory duplication error",
+		[__DLL_ENULL] = "Operations with NULL-pointer",
+		[__DLL_EEMPTY] = "Operations with empty list",
+		[__DLL_EEMPTY_OBJ] = "Operations with empty object",
+		[__DLL_ENOHANDLER] = "No handler provided",
+		[__DLL_ENEGHANDLER] = "Handler returned a negative value",
+		[__DLL_EOUTOFRANGE] = "List indexing out of range"
 	};
+
+	if (__DLL_EMIN_ERRNO > errno_code || __DLL_EMAX_ERRNO <= errno_code)
+		return "invalid errno";
 
 	return __err_strs[errno_code];
 }
