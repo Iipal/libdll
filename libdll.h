@@ -225,6 +225,14 @@ static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index);
  * -- failed to duplicate at least 1 object
  */
 static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n);
+/**
+ * The same as dll_dup but duplicate only objects for which \param fn_match return a zero.
+ */
+static inline dll_t	*dll_dupkey(const dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_match,
+		void *restrict any_data,
+		size_t start,
+		size_t n);
 
 /**
  * Print \param dll_obj object data via \param fn_print_idx handler

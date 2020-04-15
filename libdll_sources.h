@@ -28,6 +28,10 @@
 # include <string.h>
 # include <sys/cdefs.h>
 
+# include "libdll_structs.h"
+# include "libdll_bits.h"
+# include "libdll_errno.h"
+
 # ifdef __glibc_likely
 #  define __dll_likely(_cond) __glibc_likely(_cond)
 # else
@@ -39,10 +43,6 @@
 # else
 #  define __dll_unlikely(_cond) (_cond)
 # endif
-
-# include "libdll_structs.h"
-# include "libdll_bits.h"
-# include "libdll_errno.h"
 
 static inline dll_t	*dll_init(dll_bits_t bits) {
 	dll_t *restrict out;
@@ -310,7 +310,7 @@ static inline dll_obj_t	*dll_findid(const dll_t *restrict dll, size_t index) {
 		return NULL;
 	}
 	bool is_not_ign_err = !__dll_is_bit(dll->bits, DLL_BIT_EIGN);
-	if (__dll_unlikely(is_not_ign_err && (!dll->head || index > dll->objs_count))) {
+	if (__dll_unlikely(is_not_ign_err && (!dll->head || !index || index > dll->objs_count))) {
 		__dll_seterrno(!dll->head ? __DLL_EEMPTY : __DLL_EOUTOFRANGE);
 		return NULL;
 	}
@@ -327,7 +327,7 @@ static inline dll_obj_t	*dll_findidr(const dll_t *restrict dll, size_t index) {
 		return NULL;
 	}
 	bool is_not_ign_err = !__dll_is_bit(dll->bits, DLL_BIT_EIGN);
-	if (__dll_unlikely(is_not_ign_err && (!dll->last || index > dll->objs_count))) {
+	if (__dll_unlikely(is_not_ign_err && (!dll->last || !index || index > dll->objs_count))) {
 		__dll_seterrno(!dll->last ? __DLL_EEMPTY : __DLL_EOUTOFRANGE);
 		return NULL;
 	}
@@ -344,7 +344,7 @@ static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n) 
 		return NULL;
 	}
 	bool is_not_ign_err = !__dll_is_bit(dll->bits, DLL_BIT_EIGN);
-	if (__dll_unlikely(is_not_ign_err && (!dll->head || start > dll_getsize(dll)))) {
+	if (__dll_unlikely(is_not_ign_err && (!dll->head || !start || start > dll->objs_count))) {
 		__dll_seterrno(!dll->head ? __DLL_EEMPTY : __DLL_EOUTOFRANGE);
 		return NULL;
 	}
@@ -364,6 +364,67 @@ static inline dll_t	*dll_dup(const dll_t *restrict dll, size_t start, size_t n) 
 			dll_free(&new_list);
 			return NULL;
 		}
+		iobj = iobj->next;
+	}
+	return new_list;
+}
+
+static inline dll_t	*dll_dupkey(const dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_match,
+		void *restrict any_data,
+		size_t start,
+		size_t n) {
+	if (__dll_unlikely(!dll)) {
+		__dll_seterrno(__DLL_ENULL);
+		return NULL;
+	}
+
+	bool is_not_ign_err = !__dll_is_bit(dll->bits, DLL_BIT_EIGN);
+	if (__dll_unlikely(is_not_ign_err)) {
+		__dll_internal_errcode_t	__errcode = __DLL_ESUCCESS;
+
+		if (!fn_match) {
+			__errcode = __DLL_ENOHANDLER;
+		} else if (!dll->head) {
+			__errcode = __DLL_EEMPTY;
+		} else if (!start || start > dll->objs_count) {
+			__errcode = __DLL_EOUTOFRANGE;
+		}
+		if (__DLL_ESUCCESS != __errcode) {
+			__dll_seterrno(__errcode);
+			return NULL;
+		}
+	}
+
+	dll_t *restrict	new_list = dll_init(dll->bits);
+	if (__dll_unlikely(!new_list)) {
+		__dll_seterrno(__DLL_ENULL);
+		return NULL;
+	}
+
+	dll_obj_t *restrict	iobj = dll_findid(dll, start);
+	while (iobj && n--) {
+		is_not_ign_err = !__dll_is_bit(iobj->bits, DLL_BIT_EIGN);
+		if (__dll_unlikely(is_not_ign_err && !iobj->data)) {
+			__dll_seterrno(__DLL_EEMPTY_OBJ);
+			return NULL;
+		}
+
+		int	match = fn_match(iobj->data, any_data);
+		if (__dll_likely(!match)) {
+			dll_bits_t	new_bits = (iobj->bits & ~(DLL_BIT_DUP | DLL_BIT_EIGN));
+			dll_obj_t *restrict	new_obj_ptr = dll_pushback(new_list,
+				iobj->data, iobj->data_size, new_bits, NULL);
+			if (__dll_unlikely(is_not_ign_err && !new_obj_ptr)) {
+				dll_free(&new_list);
+				return NULL;
+			}
+		} else if (__dll_unlikely(is_not_ign_err && 0 > match)) {
+			__dll_seterrno(__DLL_ENEGHANDLER);
+			dll_free(&new_list);
+			return NULL;
+		}
+		iobj = iobj->next;
 	}
 	return new_list;
 }
