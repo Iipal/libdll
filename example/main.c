@@ -29,11 +29,11 @@ int	main(void) {
 
 	printf("\nPrint object founded by index 2 from end:\n");
 	dll_obj_t *restrict	found = dll_findidr(list, 2);
-	dll_printone(found, print_object, dll_getid(list, found));
+	dll_printone(found, print_object);
 
 	printf("Print object founded by index 1 from start:\n");
 	found = dll_findid(list, 1);
-	dll_printone(found, print_object, dll_getid(list, found));
+	dll_printone(found, print_object);
 
 	printf("Print 2 objects from start from index 2:\n");
 	dll_printn(list, print_object, 2, 2);
@@ -63,5 +63,10 @@ int	main(void) {
 	fprintf(stderr, "\n --- time: %lf sec. ---\n\n", time_spent);
 
 	printf("\t!!! Test dll_assert for free list !!!\n\n");
-	dll_assert(dll_delkey(list, match_obj2, &s[2]));
+	printf("dll_assert_soft_perror:\n");
+	dll_assert_soft_perror(dll_delkey(list, match_obj2, &s[2]));
+	printf("\ndll_assert_soft:\n");
+	dll_assert_soft(dll_getdata(NULL));
+	printf("\ndll_assert_perror:\n");
+	dll_assert_perror(dll_new(NULL, 0, 0, NULL));
 }

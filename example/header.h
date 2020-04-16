@@ -1,6 +1,7 @@
 #ifndef HEADER_H
 # define HEADER_H
 
+# define LIBDLL_PTHREAD_IMPLEMENTATITON 1
 # include "../libdll.h"
 
 struct s_test {
@@ -8,12 +9,12 @@ struct s_test {
 	int		val;
 };
 
-int	print_object(const void *restrict obj_data, size_t idx);
-void	free_obj(void *restrict data);
+int	print_object(void *restrict obj_data, void *restrict any_data, size_t idx);
+int	match_slash(void *restrict obj_data, void *restrict any_data, size_t idx);
+int	match_obj1(void *restrict obj_data, void *restrict any_data, size_t idx);
+int	match_obj2(void *restrict obj_data, void *restrict any_data, size_t idx);
+int	match_obj2err(void *restrict obj_data, void *restrict any_data, size_t idx);
 
-int	match_slash(const void *restrict obj_data, void *restrict any_data);
-int	match_obj1(const void *restrict obj_data, void *restrict any_data);
-int	match_obj2(const void *restrict obj_data, void *restrict any_data);
-int	match_obj2err(const void *restrict obj_data, void *restrict any_data);
+void	free_obj(void *restrict data);
 
 #endif /* HEADER_H */
