@@ -179,6 +179,27 @@ static inline size_t	dll_getid(const dll_t *restrict dll,
 		const dll_obj_t *restrict dll_obj);
 
 /**
+ * Apply \param fn_iter for at most \param n list objects data starts from \param start index
+ *
+ * \return false if:
+ *  - \param dll is NULL
+ *  - if DLL_BIT_EIGN is not specified:
+ *  -- \param fn_iter is NULL
+ *  -- list \param dll hasn't any objects
+ *  -- object with \param index doesn't exist in \param dll list
+ *  -- data inside at least 1 object is pointed to NULL
+ *  -- \param fn_iter returns a negative value
+ */
+static inline bool	dll_foreachn(dll_t *restrict dll,
+		dll_obj_iter_fn_t fn_iter,
+		size_t start,
+		size_t n);
+/**
+ * just an "alias" for dll_foreachn(dll, fn_iter, 1, dll_getsize(dll));
+ */
+static inline bool	dll_foreach(dll_t *restrict dll, dll_obj_iter_fn_t fn_iter);
+
+/**
  * Find object by data(key) from start
  *
  * \return a pointer to a matched object if \param fn_search returns a zero.
