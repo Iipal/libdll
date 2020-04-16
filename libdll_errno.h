@@ -55,16 +55,16 @@ typedef struct {
 	__dll_internal_errcode_t	__errcode;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) __dll_internal_errdata_t;
 
-static __dll_internal_errdata_t	*__dll_geterrdata(void) {
+static __dll_internal_errdata_t	*__dll_internal_geterrdata(void) {
 	static __dll_internal_errdata_t	__errno_data;
 	return &__errno_data;
 }
 
 # define __dll_seterrno(_errcode) __extension__({ \
-	*__dll_geterrdata() = (__dll_internal_errdata_t) { \
+	*__dll_internal_geterrdata() = (__dll_internal_errdata_t) { \
 		(char*)__ASSERT_FUNCTION, __FILE__, __LINE__, (_errcode) \
 	}; \
-	__ASSERT_VOID_CAST(0); \
+	(_Bool)(0); \
 })
 
 /**
@@ -83,17 +83,20 @@ static inline char	*dll_strerr(int errno_code) {
 		[__DLL_EOUTOFRANGE] = "List indexing out of range"
 	};
 
-	if (__DLL_EMIN_ERRNO > errno_code || __DLL_EMAX_ERRNO <= errno_code)
-		return "invalid errno";
-
-	return __err_strs[errno_code];
+	char *restrict	ret = NULL;
+	if (__DLL_EMIN_ERRNO > errno_code || __DLL_EMAX_ERRNO <= errno_code) {
+		ret = "invalid errno";
+	} else {
+		ret = __err_strs[errno_code];
+	}
+	return ret;
 }
 
 /**
  * Permanently print error message corresponding to last setted-up errno code in libdll
  */
 static inline void	dll_perror(const char *restrict str) {
-	char *errstr = dll_strerr(__dll_geterrdata()->__errcode);
+	char *errstr = dll_strerr(__dll_internal_geterrdata()->__errcode);
 	if (str && *str) {
 		fwrite(str, strlen(str), 1, stderr);
 		fputc(':', stderr);

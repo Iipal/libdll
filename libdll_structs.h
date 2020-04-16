@@ -25,9 +25,7 @@
 # include <stddef.h>
 # include "libdll_bits.h"
 
-typedef int (*dll_obj_handler_fn_t)(const void *restrict, void *restrict);
-typedef int (*dll_obj_handleridx_fn_t)(const void *restrict, size_t);
-typedef int (*dll_obj_iter_fn_t)(void *restrict);
+typedef int (*dll_obj_handler_fn_t)(void *restrict, void *restrict, size_t);
 typedef void (*dll_obj_free_fn_t)(void *restrict);
 
 typedef struct s_dll_obj {
