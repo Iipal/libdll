@@ -1,0 +1,3 @@
+[submodule "tests/anv"]
+	path = tests/anv
+	url = https://github.com/QwertyQaz414/anv.git
