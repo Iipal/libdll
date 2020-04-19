@@ -230,7 +230,7 @@ static inline dll_obj_t	*dll_getnext(const dll_obj_t *restrict dll_obj) {
 	} else {
 		next = dll_obj->next;
 	}
-	return dll_obj->next;
+	return next;
 }
 
 typedef enum {
