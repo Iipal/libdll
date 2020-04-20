@@ -25,45 +25,44 @@
 # include <assert.h>
 # include <string.h>
 
-typedef enum {
-	__DLL_EMIN_ERRNO,
-	__DLL_ESUCCESS = __DLL_EMIN_ERRNO,
-# define __DLL_ESUCCESS __DLL_ESUCCESS
-	__DLL_ECALLOC,
-# define __DLL_ECALLOC __DLL_ECALLOC
-	__DLL_EDUP,
-# define __DLL_EDUP __DLL_EDUP
-	__DLL_ENULL,
-# define __DLL_ENULL __DLL_ENULL
-	__DLL_EEMPTY,
-# define __DLL_EEMPTY __DLL_EEMPTY
-	__DLL_EEMPTY_OBJ,
-# define __DLL_EEMPTY_OBJ __DLL_EEMPTY_OBJ
-	__DLL_ENOHANDLER,
-# define __DLL_ENOHANDLER __DLL_ENOHANDLER
-	__DLL_ENEGHANDLER,
-# define __DLL_ENEGHANDLER __DLL_ENEGHANDLER
-	__DLL_EOUTOFRANGE,
-# define __DLL_EOUTOFRANGE __DLL_EOUTOFRANGE
-	__DLL_EMAX_ERRNO
-} __attribute__((packed)) __dll_internal_errcode_t;
-
-typedef struct {
-	char	*__errfn;
-	char	*__errfile;
+static struct {
+	const char *restrict	__errfn;
+	const char *restrict	__errfile;
 	unsigned int	__errln;
-	__dll_internal_errcode_t	__errcode;
-} __attribute__((aligned(__BIGGEST_ALIGNMENT__))) __dll_internal_errdata_t;
+	enum {
+		__DLL_EMIN_ERRNO,
+		__DLL_ESUCCESS = __DLL_EMIN_ERRNO,
+		__DLL_ECALLOC,
+		__DLL_EDUP,
+		__DLL_ENULL,
+		__DLL_EEMPTY,
+		__DLL_EEMPTY_OBJ,
+		__DLL_ENOHANDLER,
+		__DLL_ENEGHANDLER,
+		__DLL_EOUTOFRANGE,
+		__DLL_EMAX_ERRNO = __DLL_EOUTOFRANGE
+	} __attribute__((packed)) __errcode;
+} __attribute__((aligned(__BIGGEST_ALIGNMENT__))) __dll_internal_errdata = {
+	"(null)", "(null)", 0U, __DLL_ESUCCESS
+};
 
-static __dll_internal_errdata_t	*__dll_internal_geterrdata(void) {
-	static __dll_internal_errdata_t	__errno_data;
-	return &__errno_data;
-}
+static char	*__dll_internal_errstrs[__DLL_EMAX_ERRNO + 1] = {
+	[__DLL_ESUCCESS] = "Success",
+	[__DLL_ECALLOC] = "Memory calloc-ation error",
+	[__DLL_EDUP] = "Memory duplication error",
+	[__DLL_ENULL] = "Operations with NULL-pointer",
+	[__DLL_EEMPTY] = "Operations with empty list",
+	[__DLL_EEMPTY_OBJ] = "Operations with empty object",
+	[__DLL_ENOHANDLER] = "No handler provided",
+	[__DLL_ENEGHANDLER] = "Handler returned a negative value",
+	[__DLL_EOUTOFRANGE] = "List indexing out of range"
+};
 
 # define __dll_seterrno(_errcode) __extension__({ \
-	*__dll_internal_geterrdata() = (__dll_internal_errdata_t) { \
-		(char*)__ASSERT_FUNCTION, __FILE__, __LINE__, (_errcode) \
-	}; \
+	__dll_internal_errdata.__errfn = (char*)__ASSERT_FUNCTION; \
+	__dll_internal_errdata.__errfile = __FILE__; \
+	__dll_internal_errdata.__errln = __LINE__; \
+	__dll_internal_errdata.__errcode = (_errcode); \
 	(_Bool)(0); \
 })
 
@@ -71,23 +70,11 @@ static __dll_internal_errdata_t	*__dll_internal_geterrdata(void) {
  * Get a error message corresponding to \param errno_code error code
  */
 static inline char	*dll_strerr(int errno_code) {
-	static char	*__err_strs[__DLL_EMAX_ERRNO] = {
-		[__DLL_ESUCCESS] = "Success",
-		[__DLL_ECALLOC] = "Memory calloc-ation error",
-		[__DLL_EDUP] = "Memory duplication error",
-		[__DLL_ENULL] = "Operations with NULL-pointer",
-		[__DLL_EEMPTY] = "Operations with empty list",
-		[__DLL_EEMPTY_OBJ] = "Operations with empty object",
-		[__DLL_ENOHANDLER] = "No handler provided",
-		[__DLL_ENEGHANDLER] = "Handler returned a negative value",
-		[__DLL_EOUTOFRANGE] = "List indexing out of range"
-	};
-
 	char *restrict	ret = NULL;
-	if (__DLL_EMIN_ERRNO > errno_code || __DLL_EMAX_ERRNO <= errno_code) {
+	if (__DLL_EMIN_ERRNO > errno_code || __DLL_EMAX_ERRNO < errno_code) {
 		ret = "invalid errno";
 	} else {
-		ret = __err_strs[errno_code];
+		ret = __dll_internal_errstrs[errno_code];
 	}
 	return ret;
 }
@@ -96,7 +83,7 @@ static inline char	*dll_strerr(int errno_code) {
  * Permanently print error message corresponding to last setted-up errno code in libdll
  */
 static inline void	dll_perror(const char *restrict str) {
-	char *errstr = dll_strerr(__dll_internal_geterrdata()->__errcode);
+	char *errstr = dll_strerr(__dll_internal_errdata.__errcode);
 	if (str && *str) {
 		fwrite(str, strlen(str), 1, stderr);
 		fputc(':', stderr);

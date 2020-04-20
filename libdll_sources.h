@@ -57,7 +57,7 @@ static inline bool	__dll_internal_errno(dll_t *restrict dll_srcptr,
 	bool is_not_ign_err = (!__dll_is_bit(dll_srcptr->bits, DLL_BIT_EIGN)
 						|| !__dll_is_bit(dll_dstptr->bits, DLL_BIT_EIGN));
 	if (__dll_unlikely(is_not_ign_err)) {
-		__dll_internal_errcode_t	__errcode = __DLL_ESUCCESS;
+		int	__errcode = __DLL_ESUCCESS;
 
 		if (!fnptr) {
 			__errcode = __DLL_ENOHANDLER;
