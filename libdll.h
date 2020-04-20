@@ -87,17 +87,21 @@ static inline bool	dll_popfront(dll_t *restrict dll);
 static inline bool	dll_popback(dll_t *restrict dll);
 
 /**
- * Get a count of objects in list
+ * Get a count of objects in \param dll list
  */
 static inline size_t	dll_getsize(const dll_t *restrict dll);
 /**
- * Get a current first object in list
+ * Get a current first objectin \param dll list
  */
 static inline dll_obj_t	*dll_gethead(const dll_t *restrict dll);
 /**
- * Get a current last object in list
+ * Get a current last object in \param dll list
  */
 static inline dll_obj_t	*dll_getlast(const dll_t *restrict dll);
+/**
+ * Check is \param dll list empty
+ */
+static inline bool	dll_empty(const dll_t *restrict dll);
 
 /**
  * Get a pointer to data in object
@@ -201,6 +205,29 @@ static inline size_t	dll_printnr(dll_t *restrict dll,
 		size_t n);
 
 /**
+ * Swap all data in \param a and \param b objects
+ */
+static inline bool	dll_swap(dll_obj_t *restrict a, dll_obj_t *restrict b);
+/**
+ * Swap all objects in \param a and \param b lists
+ */
+static inline bool	dll_swapdll(dll_t *restrict a, dll_t *restrict b);
+
+/**
+ * Reverse all objects in \param dll
+ */
+static inline dll_t	*dll_reverse(dll_t *restrict dll);
+
+/**
+ * Add to the of list \param dst all at most \param n objects starts fron index \param start what matches vid \param fn_match
+ */
+static inline dll_t	*dll_appenddll(dll_t *restrict src,
+		dll_t *restrict dst,
+		dll_obj_handler_fn_t fn_match,
+		void *restrict ptr,
+		size_t start,
+		size_t n);
+/**
  * Creating a duplicate list with at most \param n objects from \param dll list, starting from \param start indexed object
  */
 static inline dll_t	*dll_dup(dll_t *restrict dll, size_t start, size_t n);
@@ -255,13 +282,31 @@ static inline bool	dll_delidr(dll_t *restrict dll, size_t index);
  */
 static inline bool	dll_free(dll_t *restrict *restrict dll);
 /**
- * Free given object
- * This function execute \param fn_free if its was setted-up in dll_new\dll_push*
+ * Free all data and given object
  */
 static inline bool	dll_freeobj(dll_obj_t *restrict *restrict dll_obj);
+/**
+ * Free only all data inside object
+ * This function execute \param fn_free if its was setted-up in dll_new\dll_push*
+ */
+static inline bool	dll_freeobjdata(dll_obj_t *restrict *restrict dll_obj);
+
+/**
+ * Some basic handlers:
+ */
+/**
+ * Return match only if data pointer \param obj inside object identical to pointer passed in \param ptr
+ */
+static int	dll_fnptr_ptrobj(void *restrict obj, void *restrict ptr, size_t idx);
+/**
+ * Return match only if \param idx inside object identical to index pointer passed in \param ptr
+ */
+static int	dll_fnptr_ptridx(void *restrict obj, void *restrict ptr, size_t idx);
+/**
+ * Return match for every object
+ */
+static int	dll_fnptr_any(void *restrict obj, void *restrict ptr, size_t idx);
 
 # include "libdll_sources.h"
-
-# undef __dll_is_bit
 
 #endif /* LIBDLL_H */
