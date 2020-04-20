@@ -43,6 +43,6 @@ typedef enum {
 /** \brief Freeing 'void*' memory with free(3) in the object */
 	DLL_BIT_FREE = 0x4,
 
-} dll_bits_t;
+} __attribute__((packed)) dll_bits_t;
 
 #endif /* LIBDLL_BITS_H */
