@@ -3,12 +3,14 @@
 #include <time.h>
 
 int	main(void) {
-	struct s_test	s[5] = {
-		{ strdup(".test1"), 0 },
+	struct s_test	s[3] = {
+		{ strdup("_test1"), 0 },
 		{ strdup(".test2"), 1 },
-		{ strdup("_test3"), 2 },
-		{ strdup("+test4"), 3 },
-		{ strdup("_test5"), 4 }
+		{ strdup("_test3"), 2 }
+	};
+	struct s_test	t[2] = {
+		{ strdup("append1"), 0 },
+		{ strdup("append2"), 1 }
 	};
 	struct timespec start, end;
 	clock_gettime(CLOCK_REALTIME, &start);
@@ -17,15 +19,33 @@ int	main(void) {
 	dll_pushfront(list, &s[0], sizeof(s[0]), DLL_BIT_DFLT, free_obj);
 	dll_pushfront(list, &s[1], sizeof(s[1]), DLL_BIT_DFLT, free_obj);
 	dll_pushback(list, &s[2], sizeof(s[2]), DLL_BIT_DFLT, free_obj);
-	dll_pushfront(list, &s[3], sizeof(s[3]), DLL_BIT_DFLT, free_obj);
-	dll_pushback(list, &s[4], sizeof(s[4]), DLL_BIT_DFLT, free_obj);
+
+	printf("Appending 1 dll to other:\n");
+	dll_t *restrict	list2 = dll_init(DLL_BIT_DFLT);
+	for (size_t i = 0; 2 > i; ++i)
+		dll_assert(dll_pushfront(list2, &t[i], sizeof(t[i]), DLL_BIT_DFLT, free_obj));
+	dll_swapdll(list, list2);
+	printf("src list:\n");
+	dll_print(list2, print_object);
+	printf("dst list:\n");
+	dll_print(list, print_object);
+
+	dll_assert(list = dll_appenddll(list2, list, dll_fnptr_any, NULL, 1, dll_getsize(list2)));
+	printf("result in dst list:\n");
+	dll_print(list, print_object);
+
+	printf("Swap first and last objects:\n");
+	dll_swap(dll_gethead(list), dll_getlast(list));
+	dll_print(list, print_object);
+
+	printf("Reverse list\n");
+	dll_reverse(list);
 	dll_print(list, print_object);
 
 	printf("\ndeleteing object with val == 1 and str == 'test2':\n");
 	dll_assert(dll_delkey(list, match_obj1, &s[1]));
 	printf("\tthe desired object successfully deleted\n");
 	dll_print(list, print_object);
-
 
 	printf("\nPrint object founded by index 2 from end:\n");
 	dll_obj_t *restrict	found = dll_findidr(list, 2);
@@ -56,17 +76,20 @@ int	main(void) {
 	dll_free(&dup_key);
 	dll_print(list, print_object);
 
+	printf("Delete only 2 objects starts from index 2:\n");
+	dll_deln(list, 2, 2);
+	dll_print(list, print_object);
+
+	dll_free(&list2);
 	dll_free(&list);
 
 	clock_gettime(CLOCK_REALTIME, &end);
 	double time_spent = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;
 	fprintf(stderr, "\n --- time: %lf sec. ---\n\n", time_spent);
 
-	printf("\t!!! Test dll_assert for free list !!!\n\n");
-	printf("dll_assert_soft_perror:\n");
-	dll_assert_soft_perror(dll_delkey(list, match_obj2, &s[2]));
+	printf("\t!!! Test dll_assert for free list !!!\n");
 	printf("\ndll_assert_soft:\n");
 	dll_assert_soft(dll_getdata(NULL));
-	printf("\ndll_assert_perror:\n");
-	dll_assert_perror(dll_new(NULL, 0, 0, NULL));
+	printf("\ndll_assert:\n");
+	dll_assert(dll_new(NULL, 0, 0, NULL));
 }
