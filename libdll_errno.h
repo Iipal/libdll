@@ -28,6 +28,7 @@
 static struct {
 	const char *restrict	__errfn;
 	const char *restrict	__errfile;
+	const char *restrict	__errassertion;
 	unsigned int	__errln;
 	enum {
 		__DLL_EMIN_ERRNO,
@@ -43,7 +44,7 @@ static struct {
 		__DLL_EMAX_ERRNO = __DLL_EOUTOFRANGE
 	} __attribute__((packed)) __errcode;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) __dll_internal_errdata = {
-	"(null)", "(null)", 0U, __DLL_ESUCCESS
+	"(null)", "(null)", "(null)", 0U, __DLL_ESUCCESS
 };
 
 static char	*__dll_internal_errstrs[__DLL_EMAX_ERRNO + 1] = {
@@ -58,12 +59,24 @@ static char	*__dll_internal_errstrs[__DLL_EMAX_ERRNO + 1] = {
 	[__DLL_EOUTOFRANGE] = "List indexing out of range"
 };
 
+# define __dll_assert_errno(_expr, _errcode) __extension__({ \
+	if (__dll_unlikely(!(_expr))) { \
+		__dll_internal_errdata.__errfn = (char*)__ASSERT_FUNCTION; \
+		__dll_internal_errdata.__errfile = __FILE__; \
+		__dll_internal_errdata.__errassertion = #_expr; \
+		__dll_internal_errdata.__errln = __LINE__; \
+		__dll_internal_errdata.__errcode = (_errcode); \
+		return 0; \
+	} \
+})
+
 # define __dll_seterrno(_errcode) __extension__({ \
 	__dll_internal_errdata.__errfn = (char*)__ASSERT_FUNCTION; \
 	__dll_internal_errdata.__errfile = __FILE__; \
+	__dll_internal_errdata.__errassertion = NULL; \
 	__dll_internal_errdata.__errln = __LINE__; \
 	__dll_internal_errdata.__errcode = (_errcode); \
-	(_Bool)(0); \
+	(bool)0; \
 })
 
 /**

@@ -55,10 +55,10 @@ static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
 		dll_bits_t obj_bits,
 		dll_obj_free_fn_t fn_free);
 /**
- * Add a \param dll_obj object to \param dll list
+ * Add a \param obj object to \param dll list
  */
 static inline dll_obj_t	*dll_pushfrontobj(dll_t *restrict dll,
-		dll_obj_t *restrict dll_obj);
+		dll_obj_t *restrict obj);
 
 /**
  * Creating a new list object at the end of list from given parameters
@@ -72,10 +72,10 @@ static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 		dll_obj_free_fn_t fn_free);
 
 /**
- * Add a \param dll_obj object to \param dll list
+ * Add a \param obj object to \param dll list
  */
 static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
-		dll_obj_t *restrict dll_obj);
+		dll_obj_t *restrict obj);
 
 /**
  * Delete first object in list
@@ -106,24 +106,24 @@ static inline bool	dll_empty(const dll_t *restrict dll);
 /**
  * Get a pointer to data in object
  */
-static inline void	*dll_getdata(const dll_obj_t *restrict dll_obj);
+static inline void	*dll_getdata(const dll_obj_t *restrict obj);
 /**
  * Get a size of data in object
  */
-static inline size_t	dll_getdatasize(const dll_obj_t *restrict dll_obj);
+static inline size_t	dll_getdatasize(const dll_obj_t *restrict obj);
 /**
  * Get a previous object
  */
-static inline dll_obj_t	*dll_getprev(const dll_obj_t *restrict dll_obj);
+static inline dll_obj_t	*dll_getprev(const dll_obj_t *restrict obj);
 /**
  * Get a next object
  */
-static inline dll_obj_t	*dll_getnext(const dll_obj_t *restrict dll_obj);
+static inline dll_obj_t	*dll_getnext(const dll_obj_t *restrict obj);
 /**
  * Get a index of object in list
  */
 static inline size_t	dll_getid(dll_t *restrict dll,
-		const dll_obj_t *restrict dll_obj);
+		const dll_obj_t *restrict obj);
 
 /**
  * Apply \param fn_iter for at most \param n list objects data starts from \param start index
@@ -172,9 +172,9 @@ static inline dll_obj_t	*dll_findid(dll_t *restrict dll, size_t index);
 static inline dll_obj_t	*dll_findidr(dll_t *restrict dll, size_t index);
 
 /**
- * Print \param dll_obj object data via \param fn_print handler
+ * Print \param obj object data via \param fn_print handler
  */
-static inline int	dll_printone(dll_obj_t *restrict dll_obj,
+static inline ssize_t	dll_printone(dll_obj_t *restrict obj,
 		dll_obj_handler_fn_t fn_print);
 /**
  * Print all objects via \param fn_print from begin
@@ -245,12 +245,12 @@ static inline dll_t	*dll_dupkey(dll_t *restrict dll,
  * Links to next and previous list object will be saved in the return object
  */
 static inline dll_obj_t	*dll_unlink(dll_t *restrict dll,
-		dll_obj_t *restrict dll_obj);
+		dll_obj_t *restrict obj);
 
 /**
  * Delete links to given object and free it via dll_freeobj
  */
-static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict dll_obj);
+static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict obj);
 /**
  * Delete links and free it to at most \param n object in \param dll list, starting from \param start indexed object
  */
@@ -284,12 +284,12 @@ static inline bool	dll_free(dll_t *restrict *restrict dll);
 /**
  * Free all data and given object
  */
-static inline bool	dll_freeobj(dll_obj_t *restrict *restrict dll_obj);
+static inline bool	dll_freeobj(dll_obj_t *restrict *restrict obj);
 /**
  * Free only all data inside object
  * This function execute \param fn_free if its was setted-up in dll_new\dll_push*
  */
-static inline bool	dll_freeobjdata(dll_obj_t *restrict *restrict dll_obj);
+static inline bool	dll_freeobjdata(dll_obj_t *restrict *restrict obj);
 
 /**
  * Some basic handlers:
@@ -297,15 +297,15 @@ static inline bool	dll_freeobjdata(dll_obj_t *restrict *restrict dll_obj);
 /**
  * Return match only if data pointer \param obj inside object identical to pointer passed in \param ptr
  */
-static int	dll_fnptr_ptrobj(void *restrict obj, void *restrict ptr, size_t idx);
+static ssize_t	dll_fnptr_ptrobj(void *restrict obj, void *restrict ptr, size_t idx);
 /**
  * Return match only if \param idx inside object identical to index pointer passed in \param ptr
  */
-static int	dll_fnptr_ptridx(void *restrict obj, void *restrict ptr, size_t idx);
+static ssize_t	dll_fnptr_ptridx(void *restrict obj, void *restrict ptr, size_t idx);
 /**
  * Return match for every object
  */
-static int	dll_fnptr_any(void *restrict obj, void *restrict ptr, size_t idx);
+static ssize_t	dll_fnptr_any(void *restrict obj, void *restrict ptr, size_t idx);
 
 # include "libdll_sources.h"
 

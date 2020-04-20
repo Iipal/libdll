@@ -43,14 +43,15 @@ static inline void	__dll_assert_fail(const char *assertion,
 		const char *function,
 		bool is_soft) {
 	fprintf(stderr, "%s%s%s:%u: %s%sAssertion `%s` failed.\n"
-					" -- libdll: %s%s%u: %s%s%s.\n",
+					" -- libdll: %s:%u: %s: %s%s%s%s.\n",
 		__progname, __progname[0] ? ": " : "", file, line,
 		function ? function : "", function ? ": " : "", assertion,
 		__dll_internal_errdata.__errfile,
-		__dll_internal_errdata.__errfile[0] ? ": " : "",
 		__dll_internal_errdata.__errln,
-		__dll_internal_errdata.__errfn ? __dll_internal_errdata.__errfn : "",
-		__dll_internal_errdata.__errfn ? ": " : "",
+		__dll_internal_errdata.__errfn,
+		__dll_internal_errdata.__errassertion ? "Assertion `" : "",
+		__dll_internal_errdata.__errassertion ? __dll_internal_errdata.__errassertion : "",
+		__dll_internal_errdata.__errassertion ? "` failed with: ": "",
 		dll_strerr(__dll_internal_errdata.__errcode));
 	fflush(stderr);
 	if (!is_soft)
