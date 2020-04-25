@@ -62,10 +62,6 @@ int	main(void) {
 	printf("Print 2 objects from start from index 2:\n");
 	dll_assert_soft(dll_printn(list, print_object, 2, 2));
 
-	printf("\nHandler return a negative value:\n");
-	dll_obj_t *restrict	obj;
-	dll_assert_soft(obj = dll_findkey(list, match_obj2err, &s[2]));
-
 	printf("\nDuplicate 2 objects from position 2 from list with %zu objects:\n", dll_getsize(list));
 	dll_t *restrict	dup;
 	dll_assert_soft(dup = dll_dup(list, 2, 2));
@@ -81,7 +77,11 @@ int	main(void) {
 	dll_assert_soft(dll_free(&dup_key));
 	dll_assert_soft(dll_print(list, print_object));
 
-	printf("Delete only 2 objects starts from index 2:\n");
+	printf("\nHandler return a negative value:\n");
+	dll_obj_t *restrict	obj;
+	dll_assert_soft(obj = dll_find(list, match_obj2err, &s[0]));
+
+	printf("\nDelete only 2 objects starts from index 2:\n");
 	dll_assert_soft(dll_deln(list, 2, 2));
 	dll_assert_soft(dll_print(list, print_object));
 
