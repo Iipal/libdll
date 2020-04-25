@@ -35,11 +35,13 @@ typedef struct s_dll_obj {
 	size_t	data_size;
 	dll_obj_free_fn_t	free;
 	dll_bits_t	bits;
+	bool	is_empty;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_obj_t;
 
 typedef struct s_dll {
 	dll_obj_t *restrict	head;
 	dll_obj_t *restrict	last;
+	size_t	capacity;
 	size_t	objs_count;
 	dll_bits_t	bits;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_t;
