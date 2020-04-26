@@ -33,13 +33,13 @@ static struct {
 	enum {
 		__DLL_EMIN_ERRNO,
 		__DLL_ESUCCESS = __DLL_EMIN_ERRNO,
-		__DLL_ECALLOC,
+		__DLL_EALLOC,
 		__DLL_EDUP,
 		__DLL_ENULL,
 		__DLL_EEMPTY,
 		__DLL_EEMPTY_OBJ,
-		__DLL_ENOHANDLER,
-		__DLL_ENEGHANDLER,
+		__DLL_EHANDLER_NULL,
+		__DLL_EHANDLER_NEG,
 		__DLL_EOUTOFRANGE,
 		__DLL_EMAX_ERRNO = __DLL_EOUTOFRANGE
 	} __attribute__((packed)) __errcode;
@@ -48,15 +48,15 @@ static struct {
 };
 
 static char	*__dll_internal_errstrs[__DLL_EMAX_ERRNO + 1] = {
-	[__DLL_ESUCCESS] = "Success",
-	[__DLL_ECALLOC] = "Memory calloc-ation error",
-	[__DLL_EDUP] = "Memory duplication error",
-	[__DLL_ENULL] = "Operations with NULL-pointer",
-	[__DLL_EEMPTY] = "Operations with empty list",
-	[__DLL_EEMPTY_OBJ] = "Operations with empty object",
-	[__DLL_ENOHANDLER] = "No handler provided",
-	[__DLL_ENEGHANDLER] = "Handler returned a negative value",
-	[__DLL_EOUTOFRANGE] = "List indexing out of range"
+	[__DLL_ESUCCESS]      = "Success",
+	[__DLL_EALLOC]        = "Memory allocation error",
+	[__DLL_EDUP]          = "Memory duplication error",
+	[__DLL_ENULL]         = "Operations with NULL-pointer",
+	[__DLL_EEMPTY]        = "Operations with empty list",
+	[__DLL_EEMPTY_OBJ]    = "Operations with empty object",
+	[__DLL_EHANDLER_NULL] = "No handler provided",
+	[__DLL_EHANDLER_NEG]  = "Handler returned a negative value",
+	[__DLL_EOUTOFRANGE]   = "List indexing out of range"
 };
 
 # define __dll_assert_errno(_expr, _errcode) __extension__({ \

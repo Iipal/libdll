@@ -22,155 +22,17 @@
 #  error "include only libdll.h"
 # endif
 
-# include <stdbool.h>
 # include <stdint.h>
 # include <stdlib.h>
 # include <stdio.h>
 # include <string.h>
-# include <sys/cdefs.h>
 
-# include "libdll_structs.h"
 # include "libdll_bits.h"
-# include "libdll_errno.h"
-
-# ifdef __glibc_likely
-#  define __dll_likely(_cond) __glibc_likely(_cond)
-# else
-#  define __dll_likely(_cond) (_cond)
-# endif
-
-# ifdef __glibc_unlikely
-#  define __dll_unlikely(_cond) __glibc_unlikely(_cond)
-# else
-#  define __dll_unlikely(_cond) (_cond)
-# endif
-
-static inline bool	__dll_internal_errno(dll_t *restrict dll_srcptr,
-		dll_t *restrict dll_dstptr,
-		dll_obj_handler_fn_t fnptr,
-		size_t start) {
-	if (__dll_unlikely(!dll_srcptr || !dll_dstptr)) {
-		__dll_seterrno(__DLL_ENULL);
-		return false;
-	}
-	bool is_not_ign_err = (!__dll_is_bit(dll_srcptr->bits, DLL_BIT_EIGN)
-						|| !__dll_is_bit(dll_dstptr->bits, DLL_BIT_EIGN));
-	if (__dll_unlikely(is_not_ign_err)) {
-		int	__errcode = __DLL_ESUCCESS;
-
-		if (!fnptr) {
-			__errcode = __DLL_ENOHANDLER;
-		} else if (!dll_srcptr->head) {
-			__errcode = __DLL_EEMPTY;
-		} else if (!start || start > dll_srcptr->objs_count) {
-			__errcode = __DLL_EOUTOFRANGE;
-		}
-
-		if (__DLL_ESUCCESS != __errcode) {
-			__dll_seterrno(__errcode);
-			return false;
-		}
-	}
-	return true;
-}
-
-static inline void	__dll_internal_objcopy(dll_obj_t *restrict a, dll_obj_t *restrict b) {
-	u_char *restrict	aptr = (u_char *restrict)a;
-	u_char *restrict	bptr = (u_char *restrict)b;
-	const size_t	offsetnp = offsetof(dll_obj_t, data);
-	const size_t	sizecopy = sizeof(*a) - offsetnp;
-
-	memcpy(aptr + offsetnp, bptr + offsetnp, sizecopy);
-}
-
-typedef enum {
-	__dll_begin_dir,
-	__dll_end_dir,
-} __attribute__((packed)) __dll_internal_search_direction;
-
-typedef struct {
-	dll_obj_t *restrict	obj;
-	size_t	idx;
-	bool	is_valid;
-} __dll_internal_retval;
-
-static inline __dll_internal_retval	__dll_internal_base(dll_t *restrict dll,
-		dll_obj_handler_fn_t fnptr,
-		void *restrict ptr,
-		size_t start,
-		size_t n,
-		__dll_internal_search_direction dir,
-		bool is_success_ret) {
-	__dll_internal_retval	retval = { NULL, 0, true };
-
-	if (!__dll_internal_errno(dll, dll, fnptr, start)) {
-		retval.is_valid = false;
-		return retval;
-	}
-
-	dll_obj_t *restrict	iobj;
-	size_t	idx;
-
-	if (__dll_begin_dir == dir) {
-		iobj = dll->head;
-		idx = 1;
-		if (1 != start) {
-			while (iobj && idx != start) {
-				iobj = iobj->next;
-				if (idx + 1 != start)
-					++idx;
-				else
-					break ;
-			}
-		}
-	} else /* if (__dll_end_dir == (_dir)) */ {
-		iobj = dll->last;
-		idx = dll->objs_count;
-		if (dll->objs_count != start) {
-			while (iobj) {
-				iobj = iobj->prev;
-				if (idx - 1 != start)
-					--idx;
-				else
-					break ;
-			}
-		}
-	}
-
-	while (iobj && n--) {
-		retval.idx = idx;
-		bool is_not_ign_err = !__dll_is_bit(iobj->bits, DLL_BIT_EIGN);
-		if (__dll_unlikely(is_not_ign_err && !iobj->data)) {
-			retval.is_valid = __dll_seterrno(__DLL_EEMPTY_OBJ);
-			return retval;
-		}
-
-		int ret = fnptr(iobj->data, ptr, idx);
-		if (__dll_likely(!ret)) {
-			retval.obj = iobj;
-			if (is_success_ret) {
-				return retval;
-			}
-		} else if (__dll_unlikely(is_not_ign_err && 0 > ret)) {
-			retval.is_valid = __dll_seterrno(__DLL_ENEGHANDLER);
-			return retval;
-		}
-
-		if (__dll_begin_dir == (dir)) {
-			iobj = iobj->next;
-			++idx;
-		} else /* if (__dll_end_dir == (dir)) */ {
-			iobj = iobj->prev;
-			--idx;
-		}
-	}
-
-	return retval;
-}
+# include "libdll_internal.h"
 
 static inline dll_t	*dll_init(dll_bits_t bits) {
 	dll_t *restrict	out;
-	__dll_assert_errno(out = calloc(1, sizeof(*out)), __DLL_ECALLOC);
+	__dll_assert_errno(out = calloc(1, sizeof(*out)), __DLL_EALLOC);
 	out->bits = bits;
 	return out;
 }
@@ -183,7 +45,7 @@ static inline dll_obj_t	*dll_new(void *restrict data,
 	bool is_not_ign_err = !__dll_is_bit(obj_bits, DLL_BIT_EIGN);
 	bool is_memdup = __dll_is_bit(obj_bits, DLL_BIT_DUP);
 
-	__dll_assert_errno(out = calloc(1, sizeof(*out)), __DLL_ECALLOC);
+	__dll_assert_errno(out = calloc(1, sizeof(*out)), __DLL_EALLOC);
 	if (is_not_ign_err) {
 		__dll_assert_errno(data, __DLL_ENULL);
 		__dll_assert_errno(size, __DLL_ENULL);
@@ -325,70 +187,87 @@ static inline dll_obj_t	*dll_getnext(const dll_obj_t *restrict obj) {
 
 static inline size_t	dll_getid(dll_t *restrict dll,
 		const dll_obj_t *restrict obj) {
+	__dll_assert_errno(dll, __DLL_ENULL);
+	__dll_assert_errno(obj, __DLL_ENULL);
+
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		dll_fnptr_ptrobj, obj->data, 1, dll->objs_count, __dll_begin_dir, true);
+		dll_fnptr_ptrobj, obj->data, 1, dll->objs_count, __dlli_sdir_begin, true);
 	return retval.idx;
+}
+
+static inline bool	dll_foreach(dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_iter,
+		void *restrict ptr) {
+	__dll_internal_retval	retval = __dll_internal_base(dll,
+		fn_iter, ptr, 1, dll->objs_count, __dlli_sdir_bd, false);
+	return retval.status;
 }
 
 static inline bool	dll_foreachn(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_iter,
-		size_t start,
-		size_t n) {
-	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_iter, NULL, start, n, __dll_begin_dir, false);
-	return retval.is_valid;
-}
-
-static inline bool	dll_foreach(dll_t *restrict dll, dll_obj_handler_fn_t fn_iter) {
-	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_iter, NULL, 1, dll->objs_count, __dll_begin_dir, false);
-	return retval.is_valid;
-}
-
-static inline dll_obj_t	*dll_findn(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_match,
 		void *restrict ptr,
 		size_t start,
 		size_t n) {
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_match, ptr, start, n, __dll_begin_dir, true);
-	return retval.obj;
+		fn_iter, ptr, start, n, __dlli_sdir_bd, false);
+	return retval.status;
 }
 
 static inline dll_obj_t	*dll_find(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_match,
-		void *restrict ptr) {
-	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_match, ptr, 1, dll->objs_count, __dll_begin_dir, true);
-	return retval.obj;
-}
-
-static inline dll_obj_t	*dll_findkey(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search,
 		void *restrict ptr) {
+	__dll_assert_errno(dll, __DLL_ENULL);
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_search, ptr, 1, dll->objs_count, __dll_begin_dir, true);
-	return retval.obj;
+		fn_search, ptr, 1, dll->objs_count, __dlli_sdir_begin, true);
+	if (__dll_likely(__dlli_status_match == retval.status))
+		return retval.obj;
+	else
+		return NULL;
 }
-
-static inline dll_obj_t	*dll_findkeyr(dll_t *restrict dll,
+static inline dll_obj_t	*dll_findr(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search,
 		void *restrict ptr) {
+	__dll_assert_errno(dll, __DLL_ENULL);
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_search, ptr, 1, dll->objs_count, __dll_end_dir, true);
-	return retval.obj;
+		fn_search, ptr, 1, dll->objs_count, __dlli_sdir_end, true);
+	if (__dll_likely(__dlli_status_match == retval.status))
+		return retval.obj;
+	else
+		return NULL;
+}
+static inline dll_obj_t	*dll_findn(dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_search,
+		void *restrict ptr,
+		size_t start,
+		size_t n) {
+	__dll_assert_errno(dll, __DLL_ENULL);
+	__dll_internal_retval	retval = __dll_internal_base(dll,
+		fn_search, ptr, start, n, __dlli_sdir_begin, true);
+	if (__dll_likely(__dlli_status_match == retval.status))
+		return retval.obj;
+	else
+		return NULL;
 }
 
 static inline dll_obj_t	*dll_findid(dll_t *restrict dll, size_t index) {
+	__dll_assert_errno(dll, __DLL_ENULL);
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		dll_fnptr_ptridx, &index, 1, dll->objs_count, __dll_begin_dir, true);
-	return retval.obj;
+		dll_fnptr_ptridx, &index, 1, dll->objs_count, __dlli_sdir_begin, true);
+	if (__dll_likely(__dlli_status_match == retval.status))
+		return retval.obj;
+	else
+		return NULL;
 }
 
 static inline dll_obj_t	*dll_findidr(dll_t *restrict dll, size_t index) {
+	__dll_assert_errno(dll, __DLL_ENULL);
+	size_t	real_end_idx = dll->objs_count - index + 1;
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		dll_fnptr_ptridx, &index, 1, dll->objs_count, __dll_end_dir, true);
-	return retval.obj;
+		dll_fnptr_ptridx, &real_end_idx, 1, dll->objs_count, __dlli_sdir_end, true);
+	if (__dll_likely(__dlli_status_match == retval.status))
+		return retval.obj;
+	else
+		return NULL;
 }
 
 static inline ssize_t	dll_printone(dll_obj_t *restrict obj,
@@ -397,7 +276,7 @@ static inline ssize_t	dll_printone(dll_obj_t *restrict obj,
 
 	bool is_not_ign_err = !__dll_is_bit(obj->bits, DLL_BIT_EIGN);
 	if (is_not_ign_err) {
-		__dll_assert_errno(fn_print, __DLL_ENOHANDLER);
+		__dll_assert_errno(fn_print, __DLL_EHANDLER_NULL);
 		__dll_assert_errno(obj->data, __DLL_EEMPTY_OBJ);
 	}
 
@@ -407,22 +286,22 @@ static inline ssize_t	dll_printone(dll_obj_t *restrict obj,
 
 	int ret = fn_print(obj->data, NULL, obj_idx);
 	if (__dll_unlikely(is_not_ign_err && 0 > ret))
-		__dll_seterrno(__DLL_ENEGHANDLER);
+		__dll_seterrno(__DLL_EHANDLER_NEG);
 	return ret;
 
 }
 
 static inline bool	dll_print(dll_t *restrict dll, dll_obj_handler_fn_t fn_print) {
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_print, NULL, 1, dll->objs_count, __dll_begin_dir, false);
-	return retval.is_valid;
+		fn_print, NULL, 1, dll->objs_count, __dlli_sdir_begin, false);
+	return retval.status;
 }
 
 static inline bool	dll_printr(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_print) {
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_print, NULL, 1, dll->objs_count, __dll_end_dir, false);
-	return retval.is_valid;
+		fn_print, NULL, 1, dll->objs_count, __dlli_sdir_end, false);
+	return retval.status;
 }
 
 static inline size_t	dll_printn(dll_t *restrict dll,
@@ -430,8 +309,8 @@ static inline size_t	dll_printn(dll_t *restrict dll,
 		size_t start,
 		size_t n) {
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_print, NULL, start, n, __dll_begin_dir, false);
-	return retval.is_valid;
+		fn_print, NULL, start, n, __dlli_sdir_begin, false);
+	return retval.status;
 }
 
 static inline size_t	dll_printnr(dll_t *restrict dll,
@@ -439,8 +318,8 @@ static inline size_t	dll_printnr(dll_t *restrict dll,
 		size_t start,
 		size_t n) {
 	__dll_internal_retval	retval = __dll_internal_base(dll,
-		fn_print, NULL, start, n, __dll_end_dir, false);
-	return retval.is_valid;
+		fn_print, NULL, start, n, __dlli_sdir_end, false);
+	return retval.status;
 }
 
 static inline bool	dll_swap(dll_obj_t *restrict a, dll_obj_t *restrict b) {
@@ -448,8 +327,8 @@ static inline bool	dll_swap(dll_obj_t *restrict a, dll_obj_t *restrict b) {
 	__dll_assert_errno(b, __DLL_ENULL);
 
 	dll_obj_t c = *a;
-	__dll_internal_objcopy(a, b);
-	__dll_internal_objcopy(b, &c);
+	__dll_internal_memcpy(a, b);
+	__dll_internal_memcpy(b, &c);
 	return true;
 }
 
@@ -461,15 +340,15 @@ static inline bool	dll_swapdll(dll_t *restrict a, dll_t *restrict b) {
 	bool is_not_ign_err = (!__dll_is_bit(a->bits, DLL_BIT_EIGN)
 						|| !__dll_is_bit(b->bits, DLL_BIT_EIGN));
 	if (is_not_ign_err) {
-		__dll_assert_errno(a->head, __DLL_EEMPTY);
-		__dll_assert_errno(b->head, __DLL_EEMPTY);
+		__dll_assert_errno(a->objs_count, __DLL_EEMPTY);
+		__dll_assert_errno(b->objs_count, __DLL_EEMPTY);
 	}
 	dll_obj_t *restrict	ahead = a->head;
 	dll_obj_t *restrict	bhead = b->head;
 	for (; ahead && bhead; ahead = ahead->next, bhead = bhead->next) {
 		dll_obj_t acopy = *ahead;
-		__dll_internal_objcopy(ahead, bhead);
-		__dll_internal_objcopy(bhead, &acopy);
+		__dll_internal_memcpy(ahead, bhead);
+		__dll_internal_memcpy(bhead, &acopy);
 	}
 
 	struct __internal_unfinished_swap {
@@ -523,7 +402,7 @@ static inline dll_t	*dll_appenddll(dll_t *restrict src,
 			if (__dll_unlikely(is_not_ign_err && !new_obj_ptr))
 				return NULL;
 		} else if (__dll_unlikely(is_not_ign_err && 0 > ret)) {
-			__dll_seterrno(__DLL_ENEGHANDLER);
+			__dll_seterrno(__DLL_EHANDLER_NEG);
 			return NULL;
 		}
 	}
@@ -544,7 +423,7 @@ static inline dll_t	*dll_dupkey(dll_t *restrict dll,
 		return false;
 
 	dll_t *restrict	new_list;
-	__dll_assert_errno(new_list = calloc(1, sizeof(*new_list)), __DLL_ECALLOC);
+	__dll_assert_errno(new_list = calloc(1, sizeof(*new_list)), __DLL_EALLOC);
 
 	size_t	idx = start;
 	for (dll_obj_t *restrict iobj = dll_findid(dll, start); iobj && n--; iobj = iobj->next) {
@@ -565,11 +444,13 @@ static inline dll_t	*dll_dupkey(dll_t *restrict dll,
 				return NULL;
 			}
 		} else if (__dll_unlikely(is_not_ign_err && 0 > ret)) {
-			__dll_seterrno(__DLL_ENEGHANDLER);
+			__dll_seterrno(__DLL_EHANDLER_NEG);
 			dll_free(&new_list);
 			return NULL;
 		}
 	}
+	if (__dll_unlikely(!new_list->objs_count))
+		dll_free(&new_list);
 	return new_list;
 }
 
@@ -577,6 +458,10 @@ static inline dll_obj_t	*dll_unlink(dll_t *restrict dll,
 		dll_obj_t *restrict obj) {
 	__dll_assert_errno(dll, __DLL_ENULL);
 	__dll_assert_errno(obj, __DLL_ENULL);
+
+	__dll_internal_status	status = __dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
+	if (__dlli_status_match != status)
+		return obj;
 
 	--dll->objs_count;
 	if (obj->prev)
@@ -616,7 +501,7 @@ static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n) {
 static inline bool	dll_delkey(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search_del,
 		void *restrict ptr) {
-	dll_obj_t *restrict del = dll_findkey(dll, fn_search_del, ptr);
+	dll_obj_t *restrict del = dll_find(dll, fn_search_del, ptr);
 	if (!del)
 		return NULL;
 	return dll_del(dll, del);
@@ -625,7 +510,7 @@ static inline bool	dll_delkey(dll_t *restrict dll,
 static inline bool	dll_delkeyr(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search_del,
 		void *restrict ptr) {
-	dll_obj_t *restrict del = dll_findkeyr(dll, fn_search_del, ptr);
+	dll_obj_t *restrict del = dll_findr(dll, fn_search_del, ptr);
 	if (!del)
 		return NULL;
 	return dll_del(dll, del);
@@ -647,7 +532,6 @@ static inline bool	dll_delidr(dll_t *restrict dll, size_t index) {
 
 static inline bool	dll_free(dll_t *restrict *restrict dll) {
 	__dll_assert_errno(*dll, __DLL_ENULL);
-	__dll_assert_errno((*dll)->head, __DLL_EEMPTY);
 
 	while (dll_popfront(*dll))
 		;

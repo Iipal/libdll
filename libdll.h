@@ -126,44 +126,50 @@ static inline size_t	dll_getid(dll_t *restrict dll,
 		const dll_obj_t *restrict obj);
 
 /**
+ * Apply \param fn_iter for all objects in list
+ */
+static inline bool	dll_foreach(dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_iter,
+		void *restrict ptr);
+/**
  * Apply \param fn_iter for at most \param n list objects data starts from \param start index
  */
 static inline bool	dll_foreachn(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_iter,
+		void *restrict ptr,
 		size_t start,
 		size_t n);
-/**
- * just an "alias" for dll_foreachn(dll, fn_iter, 1, dll_getsize(dll));
- */
-static inline bool	dll_foreach(dll_t *restrict dll, dll_obj_handler_fn_t fn_iter);
 
 static inline dll_obj_t	*dll_findn(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_match,
 		void *restrict ptr,
 		size_t start,
 		size_t n);
-/**
- * just an "alias" for dll_find(dll, fn_match, 1, dll_getsize(dll));
- */
-static inline dll_obj_t	*dll_find(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_match,
-		void *restrict ptr);
 
 /**
- * Find object by data(key) from start
+ * Find object by data from start
  *
  * \return a pointer to a matched object if \param fn_search returns a zero.
  * Otherwise, if the desired object doesn't exist or \param fn_search handler returns a negative value - NULL will be returned.
  * \param ptr just going to the second argument of your handler if you need additional data to compare data inside the object
 */
-static inline dll_obj_t	*dll_findkey(dll_t *restrict dll,
+static inline dll_obj_t	*dll_find(dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_match,
+		void *restrict ptr);
+/**
+ * Find object by data from end
+ */
+static inline dll_obj_t	*dll_findr(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search,
 		void *restrict ptr);
-// The same as dll_findkey but starts seraching from end
-static inline dll_obj_t	*dll_findkeyr(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search,
-		void *restrict ptr);
-
+/**
+ * Find object by data from \param start index within at most \param n objects
+ */
+static inline dll_obj_t	*dll_findn(dll_t *restrict dll,
+		dll_obj_handler_fn_t fn_match,
+		void *restrict ptr,
+		size_t start,
+		size_t n);
 /**
  * Find object by index from start(indexing starts from 1)
  */
@@ -257,13 +263,13 @@ static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict obj);
 static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n);
 
 /**
- * Delete object by data(key) from start via \param fn_search_del and dll_findkey
+ * Delete object by data(key) from start via \param fn_search_del and dll_find
  * \param ptr just going to the second argument of your handler if you need additional data to compare data inside the object
  */
 static inline bool	dll_delkey(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search_del,
 		void *restrict ptr);
-// The same as dll_delkey but using dll_findkeyr instead of dll_findkey
+// The same as dll_delkey but using dll_findr instead of dll_find
 static inline bool	dll_delkeyr(dll_t *restrict dll,
 		dll_obj_handler_fn_t fn_search_del,
 		void *restrict ptr);

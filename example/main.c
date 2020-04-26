@@ -45,9 +45,8 @@ int	main(void) {
 	dll_assert_soft(dll_reverse(list));
 	dll_assert_soft(dll_print(list, print_object));
 
-	printf("\ndeleteing object with val == 1 and str == 'test2':\n");
+	printf("\ndeleteing object with val == %d and str == '%s':\n", s[1].val, s[1].str);
 	dll_assert_soft(dll_delkey(list, match_obj1, &s[1]));
-	printf("\tthe desired object successfully deleted\n");
 	dll_assert_soft(dll_print(list, print_object));
 
 	printf("\nPrint object founded by index 2 from end:\n");
@@ -64,7 +63,7 @@ int	main(void) {
 
 	printf("\nHandler return a negative value:\n");
 	dll_obj_t *restrict	obj;
-	dll_assert_soft(obj = dll_findkey(list, match_obj2err, &s[2]));
+	dll_assert_soft(obj = dll_find(list, match_obj2err, &s[2]));
 
 	printf("\nDuplicate 2 objects from position 2 from list with %zu objects:\n", dll_getsize(list));
 	dll_t *restrict	dup;
