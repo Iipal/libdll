@@ -44,5 +44,43 @@ typedef struct s_dll {
 	dll_bits_t	bits;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_t;
 
+/**
+ * Specify only \param objptr or \param index and specify the insert type correct
+ */
+typedef struct s_dll_insert_data {
+	union {
+		dll_obj_t *restrict	at_objptr;
+		size_t	at_index;
+	};
+
+	enum
+# ifdef __clang__
+	__attribute__((__enum_extensibility__(closed), __flag_enum__))
+# endif
+	{
+		dll_insert_after,
+		dll_insert_before,
+	} __attribute__((packed)) method;
+
+	enum
+# ifdef __clang__
+	__attribute__((__enum_extensibility__(closed), __flag_enum__))
+# endif
+	{
+		dll_insert_at_object,
+		dll_insert_at_index,
+	} __attribute__((packed)) type;
+} dll_insert_data_t;
+
+/**
+ * Fast create insert data for dll_insert functions
+ * ||| dll_insert(dll, obj, dll_insert_data(other_obj, dll_insert_after, dll_insert_at_object))
+ * or
+ * ||| dll_insert_data_t id_info = dll_insert_data(5, dll_insert_before, dll_insert_at_index);
+ * ||| dll_insert(dll, obj, id_info);
+ */
+# define dll_insert_data(data, method, type) (dll_insert_data_t) { \
+	{ (data) }, (method), (type) \
+}
 
 #endif /* LIBDLL_STRUCTS_H */
