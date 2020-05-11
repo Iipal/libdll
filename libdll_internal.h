@@ -223,13 +223,13 @@ static inline bool	__dll_internal_isobj_in_dll(dll_t *restrict dll, dll_obj_t *r
 static inline bool	__dll_internal_isobj_not_in_dll(dll_t *restrict dll, dll_obj_t *restrict obj) {
 	__dll_internal_status	status =
 		__dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
-	bool	ret = __dlli_status_match == status;
+	bool	ret = (__dlli_status_match == status);
 	if (__dll_unlikely(ret
 	&& (__dll_is_bit(dll->bits, DLL_BIT_EIGN)
 		|| __dll_is_bit(obj->bits, DLL_BIT_EIGN)))) {
 		__dll_seterrno(__DLL_ENO_OBJ_LINK);
 	}
-	return ret;
+	return !ret;
 }
 
 static inline dll_obj_t	*__dll_internal_insertat(dll_t *restrict dll, dll_obj_t *restrict obj,
