@@ -38,8 +38,10 @@ static struct {
 		__DLL_ENULL,
 		__DLL_EEMPTY,
 		__DLL_EEMPTY_OBJ,
+		__DLL_ENO_OBJ_LINK,
 		__DLL_EHANDLER_NULL,
 		__DLL_EHANDLER_NEG,
+		__DLL_EINSERT_TYPE,
 		__DLL_EOUTOFRANGE,
 		__DLL_EMAX_ERRNO = __DLL_EOUTOFRANGE
 	} __attribute__((packed)) __errcode;
@@ -54,8 +56,10 @@ static char	*__dll_internal_errstrs[__DLL_EMAX_ERRNO + 1] = {
 	[__DLL_ENULL]         = "Operations with NULL-pointer",
 	[__DLL_EEMPTY]        = "Operations with empty list",
 	[__DLL_EEMPTY_OBJ]    = "Operations with empty object",
+	[__DLL_ENO_OBJ_LINK]  = "Given object is not a part of a given list",
 	[__DLL_EHANDLER_NULL] = "No handler provided",
 	[__DLL_EHANDLER_NEG]  = "Handler returned a negative value",
+	[__DLL_EINSERT_TYPE]  = "Invalid insert type",
 	[__DLL_EOUTOFRANGE]   = "List indexing out of range"
 };
 

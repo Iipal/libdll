@@ -28,7 +28,11 @@
  * for dll_init available only: DLL_BIT_DFLT and DLL_BIT_EIGN
  * for dll_new/dll_push* the same and all other
  */
-typedef enum {
+typedef enum
+# ifdef __clang__
+	__attribute__((__enum_extensibility__(closed), __flag_enum__))
+# endif
+{
 /** \brief Default behavior */
 	DLL_BIT_DFLT = 0x0,
 

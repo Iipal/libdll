@@ -78,6 +78,13 @@ static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
 		dll_obj_t *restrict obj);
 
 /**
+ * Insert a \param obj before\after specified object\index in \param insert_data via dll_insert_data
+ */
+static inline dll_obj_t	*dll_insert(dll_t *restrict dll,
+		dll_obj_t *restrict	obj,
+		dll_insert_data_t insert_data);
+
+/**
  * Delete first object in list
  */
 static inline bool	dll_popfront(dll_t *restrict dll);

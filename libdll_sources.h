@@ -69,7 +69,7 @@ static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
 		dll_bits_t obj_bits,
 		dll_obj_free_fn_t fn_free) {
 	dll_obj_t *restrict new_obj = dll_new(data, data_size, obj_bits, fn_free);
-	if (!new_obj)
+	if (__dll_unlikely(!new_obj))
 		return NULL;
 	return dll_pushfrontobj(dll, new_obj);
 }
@@ -96,7 +96,7 @@ static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
 		dll_bits_t obj_bits,
 		dll_obj_free_fn_t fn_free) {
 	dll_obj_t *restrict new_obj = dll_new(data, data_size, obj_bits, fn_free);
-	if (!new_obj)
+	if (__dll_unlikely(!new_obj))
 		return NULL;
 	return dll_pushbackobj(dll, new_obj);
 }
@@ -108,14 +108,67 @@ static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
 
 	++dll->objs_count;
 	if (!dll->head) {
-		dll->head = obj;
-		dll->last = obj;
+		dll->head = dll->last = obj;
 	} else {
 		dll->last->next = obj;
 		obj->prev = dll->last;
 		dll->last = obj;
 	}
 	return obj;
+}
+
+static inline dll_obj_t	*dll_insert(dll_t *restrict dll,
+		dll_obj_t *restrict obj,
+		dll_insert_data_t insert_data) {
+	__dll_assert_errno(dll, __DLL_ENULL);
+
+	dll_obj_t *restrict	__obj;
+	dll_obj_t	*(*fn_insert)(dll_t *restrict, dll_obj_t *restrict) = NULL;
+
+	if (!dll->objs_count)
+		fn_insert = dll_pushfrontobj;
+
+	switch (insert_data.type) {
+		case dll_insert_at_object: {
+			__dll_assert_errno(insert_data.at_objptr, __DLL_ENULL);
+			__obj = dll_find(dll, dll_fnptr_ptrobj,
+				insert_data.at_objptr->data);
+			if (!__obj)
+				return NULL;
+			if (__dll_unlikely(!fn_insert)) {
+				if (!__obj->prev && dll_insert_before == insert_data.method) {
+					fn_insert = dll_pushfrontobj;
+				} else if (!__obj->next && dll_insert_after == insert_data.method) {
+					fn_insert = dll_pushbackobj;
+				}
+			}
+			break ;
+		}
+		case dll_insert_at_index: {
+			__obj = dll_findid(dll, insert_data.at_index);
+			if (!__obj)
+				return NULL;
+			if (__dll_unlikely(!fn_insert)) {
+				if (1 == insert_data.at_index && dll_insert_before == insert_data.method) {
+					fn_insert = dll_pushfrontobj;
+				} else if (dll->objs_count == insert_data.at_index && dll_insert_after == insert_data.method) {
+					fn_insert = dll_pushbackobj;
+				}
+			}
+			break ;
+		}
+		default: {
+			__dll_seterrno(__DLL_EINSERT_TYPE);
+			return NULL;
+			break ;
+		}
+	}
+	dll_obj_t	*retval;
+	if (!fn_insert)
+		retval = __dll_internal_insertat(dll, obj, __obj, (bool)insert_data.method);
+	else
+		retval = fn_insert(dll, obj);
+	return retval;
 }
 
 static inline bool	dll_popfront(dll_t *restrict dll) {
@@ -459,9 +512,8 @@ static inline dll_obj_t	*dll_unlink(dll_t *restrict dll,
 	__dll_assert_errno(dll, __DLL_ENULL);
 	__dll_assert_errno(obj, __DLL_ENULL);
 
-	__dll_internal_status	status = __dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
-	if (__dlli_status_match != status)
-		return obj;
+	if (__dll_internal_isobj_not_in_dll(dll, obj))
+		return (NULL);
 
 	--dll->objs_count;
 	if (obj->prev)
