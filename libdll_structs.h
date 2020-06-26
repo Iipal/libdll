@@ -25,8 +25,8 @@
 # include <stddef.h>
 # include "libdll_bits.h"
 
-typedef ssize_t (*dll_obj_handler_fn_t)(void *restrict, void *restrict, size_t);
-typedef void (*dll_obj_free_fn_t)(void *restrict);
+typedef ssize_t (*dll_obj_handler_fn_t)(void *restrict obj_data, void *restrict user_data, size_t obj_idx);
+typedef void (*dll_obj_free_fn_t)(void *restrict obj_data);
 
 typedef struct s_dll_obj {
 	struct s_dll_obj *restrict	next;

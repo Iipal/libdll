@@ -54,19 +54,19 @@ static inline void	__dll_assert_fail(const char *assertion,
 		__dll_internal_errdata.__errassertion ? "` failed with: ": "",
 		dll_strerr(__dll_internal_errdata.__errcode));
 	fflush(stderr);
-	if (!is_soft)
+
+	if (false == is_soft) {
 		abort();
+	}
 }
 
 #  define dll_assert(expr) ((expr) \
 	? __ASSERT_VOID_CAST (0) \
-	: __dll_assert_fail(#expr, __FILE__, __LINE__, \
-		__ASSERT_FUNCTION, false))
+	: __dll_assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, false))
 
 #  define dll_assert_soft(expr) ((expr) \
 	? __ASSERT_VOID_CAST (0) \
-	: __dll_assert_fail(#expr, __FILE__, __LINE__, \
-		__ASSERT_FUNCTION, true))
+	: __dll_assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, true))
 
 # endif
 

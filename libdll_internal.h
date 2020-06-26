@@ -65,24 +65,37 @@ typedef struct {
  * Internal prototypes:
  *********************/
 static inline bool	__dll_internal_errno(dll_t *dll_srcptr,
-		dll_t *dll_dstptr, dll_obj_handler_fn_t fnptr, size_t start);
+		dll_t *dll_dstptr,
+		dll_obj_handler_fn_t fnptr,
+		size_t start);
 
 static inline void	__dll_internal_memcpy(dll_obj_t *restrict a, dll_obj_t *restrict b);
 static inline void	__dll_internal_bzero(dll_obj_t *restrict a);
 
 static inline __dll_internal_status	__dll_internal_basecycle(__dll_internal_retval *restrict rv,
-		dll_obj_t *restrict obj, dll_obj_handler_fn_t fnptr, void *restrict ptr, bool is_success_ret);
+		dll_obj_t *restrict obj,
+		dll_obj_handler_fn_t fnptr,
+		void *restrict ptr,
+		bool is_success_ret);
 static inline __dll_internal_retval	__dll_internal_bdcycle(dll_t *restrict dll,
-		dll_obj_handler_fn_t fnptr, void *restrict ptr, bool is_success_ret);
+		dll_obj_handler_fn_t fnptr,
+		void *restrict ptr,
+		bool is_success_ret);
 static inline __dll_internal_retval	__dll_internal_base(dll_t *restrict dll,
-		dll_obj_handler_fn_t fnptr, void *restrict ptr, size_t start, size_t n,
-		__dll_internal_search_direction sd, bool is_success_ret);
+		dll_obj_handler_fn_t fnptr,
+		void *restrict ptr,
+		size_t start,
+		size_t n,
+		__dll_internal_search_direction sd,
+		bool is_success_ret);
 
 static inline bool	__dll_internal_isobj_in_dll(dll_t *restrict dll, dll_obj_t *restrict dll_obj);
 static inline bool	__dll_internal_isobj_not_in_dll(dll_t *restrict dll, dll_obj_t *restrict dll_obj);
 
-static inline dll_obj_t	*__dll_internal_insertat(dll_t *restrict dll, dll_obj_t *restrict obj,
-		dll_obj_t *restrict atobj, bool is_before);
+static inline dll_obj_t	*__dll_internal_insertat(dll_t *restrict dll,
+		dll_obj_t *restrict obj,
+		dll_obj_t *restrict atobj,
+		bool is_before);
 
 /***********************
  * Internal realization:
@@ -91,10 +104,13 @@ static inline bool	__dll_internal_errno(dll_t *dll_srcptr,
 		dll_t *dll_dstptr,
 		dll_obj_handler_fn_t fnptr,
 		size_t start) {
-	if (__dll_unlikely(!dll_srcptr || !dll_dstptr)) {
+# ifndef __DLL_NO_ERRNO
+	if (__dll_unlikely(!dll_srcptr || !dll_dstptr))
+	{
 		__dll_seterrno(__DLL_ENULL);
 		return false;
 	}
+
 	bool is_not_ign_err = (!__dll_is_bit(dll_srcptr->bits, DLL_BIT_EIGN)
 						|| !__dll_is_bit(dll_dstptr->bits, DLL_BIT_EIGN));
 	if (__dll_unlikely(is_not_ign_err)) {
@@ -114,6 +130,9 @@ static inline bool	__dll_internal_errno(dll_t *dll_srcptr,
 		}
 	}
 	return true;
+# else
+	return !(!dll_srcptr || !dll_dstptr);
+# endif /* __DLL_NO_ERRNO */
 }
 
 static inline void	__dll_internal_memcpy(dll_obj_t *restrict a, dll_obj_t *restrict b) {
@@ -124,6 +143,7 @@ static inline void	__dll_internal_memcpy(dll_obj_t *restrict a, dll_obj_t *restr
 
 	memcpy(aptr + offsetnp, bptr + offsetnp, sizecopy);
 }
+
 static inline void	__dll_internal_bzero(dll_obj_t *restrict a) {
 	u_char *restrict	aptr = (u_char *restrict)a;
 	const size_t	offsetnp = offsetof(dll_obj_t, data);
@@ -133,39 +153,63 @@ static inline void	__dll_internal_bzero(dll_obj_t *restrict a) {
 }
 
 static inline __dll_internal_status	__dll_internal_basecycle(__dll_internal_retval *restrict rv,
-		dll_obj_t *restrict obj, dll_obj_handler_fn_t fnptr, void *restrict ptr, bool is_success_ret) {
+		dll_obj_t *restrict obj,
+		dll_obj_handler_fn_t fnptr,
+		void *restrict ptr,
+		bool is_success_ret) {
+# ifndef __DLL_NO_ERRNO
 	bool is_not_ign_err = !__dll_is_bit(obj->bits, DLL_BIT_EIGN);
-	if (__dll_unlikely(is_not_ign_err && !obj->data))
+	if (__dll_unlikely(is_not_ign_err && !obj->data)) {
 		return __dll_seterrno(__DLL_EEMPTY_OBJ);
+	}
+# else
+	if (__dll_unlikely(!obj->data)) {
+		return __dlli_status_invalid;
+	}
+# endif /* __DLL_NO_ERRNO */
 
 	ssize_t ret = fnptr(obj->data, ptr, rv->idx);
 	if (__dll_likely(!ret)) {
 		rv->obj = obj;
-		if (is_success_ret)
+		if (is_success_ret) {
 			return __dlli_status_match;
-	} else if (__dll_unlikely(is_not_ign_err && 0 > ret)) {
+		}
+	}
+# ifdef __DLL_NO_ERRNO
+	else if (__dll_unlikely(is_not_ign_err && 0 > ret)) {
 		return __dll_seterrno(__DLL_EHANDLER_NEG);
 	}
+# else
+	else if (__dll_unlikely(0 > ret)) {
+		return __dlli_status_invalid;
+	}
+# endif /* __DLL_NO_ERRNO */
+
 	return __dlli_status_valid;
 }
 
 static inline __dll_internal_retval	__dll_internal_bdcycle(dll_t *restrict dll,
-		dll_obj_handler_fn_t fnptr, void *restrict ptr, bool is_success_ret) {
+		dll_obj_handler_fn_t fnptr,
+		void *restrict ptr,
+		bool is_success_ret) {
 	__dll_internal_retval rv = { NULL, 0, __dlli_status_valid };
 	size_t	headidx = 1;
 	size_t	endidx = dll->objs_count;
 
 	for (dll_obj_t *restrict ihead = dll->head, *restrict ilast = dll->last;
-	ihead && ilast;
-	ihead = ihead->next, ilast = ilast->prev) {
+			ihead && ilast;
+			ihead = ihead->next, ilast = ilast->prev) {
 		rv.idx = headidx++;
 		rv.status = __dll_internal_basecycle(&rv, ihead, fnptr, ptr, is_success_ret);
-		if (__dlli_status_match == rv.status || __dlli_status_invalid == rv.status)
+		if (__dlli_status_match == rv.status || __dlli_status_invalid == rv.status) {
 			return rv;
+		}
+
 		rv.idx = endidx--;
 		rv.status = __dll_internal_basecycle(&rv, ilast, fnptr, ptr, is_success_ret);
-		if (__dlli_status_match == rv.status || __dlli_status_invalid == rv.status)
+		if (__dlli_status_match == rv.status || __dlli_status_invalid == rv.status) {
 			return rv;
+		}
 	}
 	return rv;
 }
@@ -177,13 +221,13 @@ static inline __dll_internal_retval	__dll_internal_getobjbyidx(dll_t *restrict d
 		(__dlli_sdir_begin == sd) ? 0 : (dll->objs_count + 1),
 		__dlli_status_valid
 	};
-	const size_t	abs_index = ((__dlli_sdir_begin == sd)
-		? search_index : (dll->objs_count - search_index + 1));
+	const size_t	abs_index = ((__dlli_sdir_begin == sd) ? search_index : (dll->objs_count - search_index + 1));
 
 	while (rv.obj && rv.idx != abs_index) {
 		rv.idx += ((__dlli_sdir_begin == sd) ? 1 : -1);
-		if (abs_index == rv.idx)
+		if (abs_index == rv.idx) {
 			return rv;
+		}
 		rv.obj = ((__dlli_sdir_begin == sd) ? rv.obj->next : rv.obj->prev);
 	}
 	rv = (__dll_internal_retval) { NULL, 0, __dlli_status_invalid };
@@ -191,13 +235,18 @@ static inline __dll_internal_retval	__dll_internal_getobjbyidx(dll_t *restrict d
 }
 
 static inline __dll_internal_retval	__dll_internal_base(dll_t *restrict dll,
-		dll_obj_handler_fn_t fnptr, void *restrict ptr, size_t start, size_t n,
-		__dll_internal_search_direction sd, bool is_success_ret) {
+		dll_obj_handler_fn_t fnptr,
+		void *restrict ptr,
+		size_t start,
+		size_t n,
+		__dll_internal_search_direction sd,
+		bool is_success_ret) {
 	__dll_internal_retval	retval = { NULL, 0, __dlli_status_valid };
 
 	retval.status = __dll_internal_errno(dll, dll, fnptr, start);
-	if (__dlli_status_valid != retval.status)
+	if (__dlli_status_valid != retval.status) {
 		return retval;
+	}
 
 	if (__dlli_sdir_bd == sd) {
 		retval = __dll_internal_bdcycle(dll, fnptr, ptr, is_success_ret);
@@ -215,25 +264,23 @@ static inline __dll_internal_retval	__dll_internal_base(dll_t *restrict dll,
 }
 
 static inline bool	__dll_internal_isobj_in_dll(dll_t *restrict dll, dll_obj_t *restrict obj) {
-	__dll_internal_status	status =
-		__dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
+	__dll_internal_status	status = __dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
 	return __dlli_status_match == status;
 }
 
 static inline bool	__dll_internal_isobj_not_in_dll(dll_t *restrict dll, dll_obj_t *restrict obj) {
-	__dll_internal_status	status =
-		__dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
-	bool	ret = (__dlli_status_match == status);
-	if (__dll_unlikely(ret
-	&& (__dll_is_bit(dll->bits, DLL_BIT_EIGN)
-		|| __dll_is_bit(obj->bits, DLL_BIT_EIGN)))) {
+	__dll_internal_status	status = __dll_internal_bdcycle(dll, dll_fnptr_ptrobj, obj->data, true).status;
+	bool	out = (__dlli_status_match == status);
+	if (__dll_unlikely(out && (__dll_is_bit(dll->bits, DLL_BIT_EIGN) || __dll_is_bit(obj->bits, DLL_BIT_EIGN)))) {
 		__dll_seterrno(__DLL_ENO_OBJ_LINK);
 	}
-	return !ret;
+	return !out;
 }
 
-static inline dll_obj_t	*__dll_internal_insertat(dll_t *restrict dll, dll_obj_t *restrict obj,
-		dll_obj_t *restrict atobj, bool is_before) {
+static inline dll_obj_t	*__dll_internal_insertat(dll_t *restrict dll,
+		dll_obj_t *restrict obj,
+		dll_obj_t *restrict atobj,
+		bool is_before) {
 	++dll->objs_count;
 	if (is_before) {
 		obj->prev = atobj->prev;

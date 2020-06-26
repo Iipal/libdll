@@ -43,7 +43,8 @@ static struct {
 		__DLL_EHANDLER_NEG,
 		__DLL_EINSERT_TYPE,
 		__DLL_EOUTOFRANGE,
-		__DLL_EMAX_ERRNO = __DLL_EOUTOFRANGE
+		__DLL_IGN_ERR,
+		__DLL_EMAX_ERRNO = __DLL_IGN_ERR
 	} __attribute__((packed)) __errcode;
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) __dll_internal_errdata = {
 	"(null)", "(null)", "(null)", 0U, __DLL_ESUCCESS
@@ -60,7 +61,8 @@ static char	*__dll_internal_errstrs[__DLL_EMAX_ERRNO + 1] = {
 	[__DLL_EHANDLER_NULL] = "No handler provided",
 	[__DLL_EHANDLER_NEG]  = "Handler returned a negative value",
 	[__DLL_EINSERT_TYPE]  = "Invalid insert type",
-	[__DLL_EOUTOFRANGE]   = "List indexing out of range"
+	[__DLL_EOUTOFRANGE]   = "List indexing out of range",
+	[__DLL_IGN_ERR]       = "All occurred errors ignored"
 };
 
 # define __dll_assert_errno(_expr, _errcode) __extension__({ \
