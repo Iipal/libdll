@@ -104,7 +104,7 @@ static inline bool	__dll_internal_errno(dll_t *dll_srcptr,
 		dll_t *dll_dstptr,
 		dll_obj_handler_fn_t fnptr,
 		size_t start) {
-# ifndef __DLL_NO_ERRNO
+# ifndef LIBDLL_NO_ERRNO
 	if (__dll_unlikely(!dll_srcptr || !dll_dstptr))
 	{
 		__dll_seterrno(__DLL_ENULL);
@@ -131,8 +131,9 @@ static inline bool	__dll_internal_errno(dll_t *dll_srcptr,
 	}
 	return true;
 # else
+	(void)fnptr; (void)start;
 	return !(!dll_srcptr || !dll_dstptr);
-# endif /* __DLL_NO_ERRNO */
+# endif /* LIBDLL_NO_ERRNO */
 }
 
 static inline void	__dll_internal_memcpy(dll_obj_t *restrict a, dll_obj_t *restrict b) {
@@ -157,7 +158,7 @@ static inline __dll_internal_status	__dll_internal_basecycle(__dll_internal_retv
 		dll_obj_handler_fn_t fnptr,
 		void *restrict ptr,
 		bool is_success_ret) {
-# ifndef __DLL_NO_ERRNO
+# ifndef LIBDLL_NO_ERRNO
 	bool is_not_ign_err = !__dll_is_bit(obj->bits, DLL_BIT_EIGN);
 	if (__dll_unlikely(is_not_ign_err && !obj->data)) {
 		return __dll_seterrno(__DLL_EEMPTY_OBJ);
@@ -166,7 +167,7 @@ static inline __dll_internal_status	__dll_internal_basecycle(__dll_internal_retv
 	if (__dll_unlikely(!obj->data)) {
 		return __dlli_status_invalid;
 	}
-# endif /* __DLL_NO_ERRNO */
+# endif /* LIBDLL_NO_ERRNO */
 
 	ssize_t ret = fnptr(obj->data, ptr, rv->idx);
 	if (__dll_likely(!ret)) {
@@ -175,7 +176,7 @@ static inline __dll_internal_status	__dll_internal_basecycle(__dll_internal_retv
 			return __dlli_status_match;
 		}
 	}
-# ifdef __DLL_NO_ERRNO
+# ifndef LIBDLL_NO_ERRNO
 	else if (__dll_unlikely(is_not_ign_err && 0 > ret)) {
 		return __dll_seterrno(__DLL_EHANDLER_NEG);
 	}
@@ -183,7 +184,7 @@ static inline __dll_internal_status	__dll_internal_basecycle(__dll_internal_retv
 	else if (__dll_unlikely(0 > ret)) {
 		return __dlli_status_invalid;
 	}
-# endif /* __DLL_NO_ERRNO */
+# endif /* LIBDLL_NO_ERRNO */
 
 	return __dlli_status_valid;
 }

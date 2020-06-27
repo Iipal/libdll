@@ -1,7 +1,7 @@
 #ifndef HEADER_H
 # define HEADER_H
 
-# define LIBDLL_PTHREAD_IMPLEMENTATITON 1
+# define LIBDLL_NO_ERRNO
 # include "../libdll.h"
 
 struct s_test {
