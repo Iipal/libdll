@@ -15,307 +15,892 @@
  *
  */
 
+
 #ifndef LIBDLL_H
 # define LIBDLL_H
 
-# define _GNU_SOURCE
-
+# include <stdint.h>
+# include <stdlib.h>
+# include <stdio.h>
+# include <stddef.h>
+# include <string.h>
 # include <stdbool.h>
-# include <limits.h>
-
-# include "libdll_bits.h"
-# include "libdll_assert.h"
-# include "libdll_structs.h"
-# include "libdll_errno.h"
+# include <sys/types.h>
 
 /**
- * Allocate new list with
- * For specifying behavior for list - set \param bits using DLL_BIT*
+ * ----------------------------
+ * libdll specifications and macroses
+ * ----------------------------
  */
-static inline dll_t	*dll_init(dll_bits_t bits);
-static inline dll_t *dll_initn(dll_bits_t bits, dll_bits_t obj_bits, size_t n);
+# ifdef LIBDLL_UNSAFE_USAGE
+#  undef LIBDLL_UNSAFE_USAGE
 
 /**
- * Create new list object
- * For specifying behavior for this object - set \param bits using DLL_BIT*
- * !! Strongly recomended to setup \param fn_free
- *  if you allocating memory inside \param data
+ * \brief Removing all nullability checks in all functions.
+ *  May cause better performance but undefined behavior as well.
  */
-static inline dll_obj_t	*dll_new(void *restrict data,
-		size_t size,
-		dll_bits_t bits,
-		dll_obj_free_fn_t fn_free);
+#  define LIBDLL_UNSAFE_USAGE 1
+
+# endif /* LIBDLL_UNSAFE_USAGE */
 
 /**
- * Creating a new list object at the front of list from given parameters
- * !! Strongly recomended to setup \param fn_free if you allocate memory inside \param data
+ * \brief Use this macros as \c fn_free argument for \c dll_new_obj if you don't allocate anything inside a \c data, but the \c data itself was allocated.
  */
-static inline dll_obj_t	*dll_pushfront(dll_t *restrict dll,
-		void *restrict data,
-		size_t data_size,
-		dll_bits_t obj_bits,
-		dll_obj_free_fn_t fn_free);
-/**
- * Add a \param obj object to \param dll list
- */
-static inline dll_obj_t	*dll_pushfrontobj(dll_t *restrict dll,
-		dll_obj_t *restrict obj);
+# define LIBDLL_FN_FREE_CLEARANCE ((dll_callback_fn_t)-0x1UL)
 
 /**
- * Creating a new list object at the end of list from given parameters
- * !! Strongly recomended to setup \param fn_free
- *  if you allocating memory inside \param data
+ * ----------------------------
+ * Data structure definitions
+ * ----------------------------
  */
-static inline dll_obj_t	*dll_pushback(dll_t *restrict dll,
-		void *restrict data,
-		size_t data_size,
-		dll_bits_t obj_bits,
-		dll_obj_free_fn_t fn_free);
 
 /**
- * Add a \param obj object to \param dll list
- */
-static inline dll_obj_t	*dll_pushbackobj(dll_t *restrict dll,
-		dll_obj_t *restrict obj);
-
-/**
- * Delete first object in list
- */
-static inline bool	dll_popfront(dll_t *restrict dll);
-/**
- * Delete last object in list
- */
-static inline bool	dll_popback(dll_t *restrict dll);
-
-/**
- * Get a count of objects in \param dll list
- */
-static inline size_t	dll_getsize(dll_t *restrict dll);
-/**
- * Get a current first objectin \param dll list
- */
-static inline dll_obj_t	*dll_gethead(dll_t *restrict dll);
-/**
- * Get a current last object in \param dll list
- */
-static inline dll_obj_t	*dll_getlast(dll_t *restrict dll);
-/**
- * Check is \param dll list empty
- */
-static inline bool	dll_empty(const dll_t *restrict dll);
-
-/**
- * Get a pointer to data in object
- */
-static inline void	*dll_getdata(const dll_obj_t *restrict obj);
-/**
- * Get a size of data in object
- */
-static inline size_t	dll_getdatasize(const dll_obj_t *restrict obj);
-/**
- * Get a previous object
- */
-static inline dll_obj_t	*dll_getprev(dll_obj_t *restrict obj);
-/**
- * Get a next object
- */
-static inline dll_obj_t	*dll_getnext(dll_obj_t *restrict obj);
-/**
- * Get a index of object in list
- */
-static inline size_t	dll_getid(dll_t *restrict dll,
-		const dll_obj_t *restrict obj);
-
-/**
- * just an "alias" for dll_foreachn(dll, fn_iter, 1, dll_getsize(dll));
- */
-static inline bool	dll_foreach(dll_t *restrict dll, dll_obj_handler_fn_t fn_iter);
-/**
+ * \brief A callback funcion typedef for comparing \c data from 2 list-objects.
  *
- */
-static inline bool	dll_foreachp(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_iter,
-		void *restrict ptr);
-/**
- * Apply \param fn_iter for at most \param n list objects data starts from \param start index
- */
-static inline bool	dll_foreachn(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_iter,
-		size_t start,
-		size_t n);
-static inline bool	dll_foreachnp(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_iter,
-		void *restrict ptr,
-		size_t start,
-		size_t n);
-
-/**
- * Find object by data from start
+ * \param obj1_data list-object data.
+ * \param obj2_data other list-object data.
  *
- * \return a pointer to a matched object if \param fn_search returns a zero.
- * Otherwise, if the desired object doesn't exist or \param fn_search handler returns a negative value - NULL will be returned.
- * \param ptr just going to the second argument of your handler if you need additional data to compare data inside the object
+ * \return comparing result value.
  */
-static inline dll_obj_t	*dll_find(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_match,
-		void *restrict ptr);
-/**
- * Find object by data from end
- */
-static inline dll_obj_t	*dll_findr(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search,
-		void *restrict ptr);
-/**
- * Find object by data from \param start index within at most \param n objects
- */
-static inline dll_obj_t	*dll_findn(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_match,
-		void *restrict ptr,
-		size_t start,
-		size_t n);
-/**
- * Find object by index from start(indexing starts from 1)
- */
-static inline dll_obj_t	*dll_findid(dll_t *restrict dll, size_t index);
-// The same as dll_findid but starts from end
-static inline dll_obj_t	*dll_findidr(dll_t *restrict dll, size_t index);
+typedef ssize_t (*dll_callback_cmp_fn_t)(void *restrict obj1_data, void *restrict obj2_data);
 
 /**
- * Print \param obj object data via \param fn_print handler
+ * \brief A callback function typedef for interact with list-object data.
+ *
+ * \param obj_data list-object data.
  */
-static inline ssize_t	dll_printone(dll_obj_t *restrict obj,
-		dll_obj_handler_fn_t fn_print);
-/**
- * Print all objects via \param fn_print from begin
- */
-static inline bool	dll_print(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_print);
-/**
- * Print all objects via \param fn_print from end
- */
-static inline bool	dll_printr(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_print);
+typedef void (*dll_callback_fn_t)(void *restrict obj_data);
 
 /**
- * The same as dll_print but printing at most \param n objects starts
- *  from index \param start via \param fn_print to end of list
+ * \brief A list-object structure.
+ *
+ * \param next a pointer to next list-object.
+ * \param prev a pointer to previous list-object.
+ * \param data an any user defined data.
+ * \param fn_free callback-function to manually free anything inside \c data on deleting the list-object.
+ *  Notice: \c data itself will be freed automatically with \c free if a \c fn_free function was specified.
+ *  Use \c LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param data_size a \c data size.
  */
-static inline size_t	dll_printn(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_print,
-		size_t start,
-		size_t n);
-/**
- * The same as dll_print but printing at most \param n objects starts
- *  from index \param start via \param fn_print to start of list
- */
-static inline size_t	dll_printnr(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_print,
-		size_t start,
-		size_t n);
+typedef struct s_dll_obj {
+    struct s_dll_obj *restrict  next;       /** a pointer to next list-object. */
+    struct s_dll_obj *restrict  prev;       /** a pointer to previous list-object. */
+    void *restrict              data;       /** an any user defined data. */
+    dll_callback_fn_t           fn_free;    /** callback-function to manually free anything inside \c data on deleting the list-object. Notice: \c data itself will be freed automatically with \c free if a \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c data, but the \c data itself was allocated.*/
+    size_t                      data_size;  /** a \c data size. */
+} __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_obj_t;
 
 /**
- * Swap all data in \param a and \param b objects
+ * \brief A doubly linked list structure.
+ *
+ * \param head a first element of list.
+ * \param last a last element of list.
+ * \param objs_count a counter of list-objects in list.
  */
-static inline bool	dll_swap(dll_obj_t *restrict a, dll_obj_t *restrict b);
-/**
- * Swap all objects in \param a and \param b lists
- */
-static inline bool	dll_swapdll(dll_t *restrict a, dll_t *restrict b);
+typedef struct s_dll {
+    dll_obj_t *restrict head;       /** a first element of list. */
+    dll_obj_t *restrict last;       /** a last element of list. */
+    size_t              objs_count; /** a counter of list-objects in list. */
+} __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_t;
 
 /**
- * Reverse all objects in \param dll
+ * ----------------------------
+ * Function prototypes
+ * ----------------------------
  */
-static inline dll_t	*dll_reverse(dll_t *restrict dll);
 
 /**
- * Add to the of list \param dst all at most \param n objects starts fron index \param start what matches vid \param fn_match
+ * \brief Initialize your list first with this function.
+ *
+ * \return allocated memory for new list.
  */
-static inline dll_t	*dll_appenddll(dll_t *restrict src,
-		dll_t *restrict dst,
-		dll_obj_handler_fn_t fn_match,
-		void *restrict ptr,
-		size_t start,
-		size_t n);
-/**
- * Creating a duplicate list with at most \param n objects from \param dll list, starting from \param start indexed object
- */
-static inline dll_t	*dll_dup(dll_t *restrict dll, size_t start, size_t n);
-/**
- * The same as dll_dup but duplicate only objects for which \param fn_match return a zero.
- */
-static inline dll_t	*dll_dupkey(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_match,
-		void *restrict ptr,
-		size_t start,
-		size_t n);
+static inline dll_t     *dll_init(void);
 
 /**
- * Removing all links to a given object in the list and return it
- * Links to next and previous list object will be saved in the return object
+ * \brief Creating a new list-object from given parameters.
+ * Strongly recomended to setup \c fn_free if you allocate memory inside \c data.
+ *
+ * \param data any data you want to put inside of list.
+ * \param size size of \c data.
+ * \param fn_free callback-function to manually free anything inside \c data on deleting the list-object.
+ *  Notice: \c data itself will be freed automatically with \c free if a \c fn_free function was specified.
+ *  Use \c LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c data, but the \c data itself was allocated.
+ *
+ * \return a new created object.
  */
-static inline dll_obj_t	*dll_unlink(dll_t *restrict dll,
-		dll_obj_t *restrict obj);
+static inline dll_obj_t *dll_new_obj(void *restrict data, size_t size, dll_callback_fn_t fn_free);
 
 /**
- * Delete links to given object and free it via dll_freeobj
+ * \brief Push a \c list-object to front of given \c list.
+ *
+ * \param dll destination list.
+ * \param obj list-object.
+ *
+ * \return \c obj
  */
-static inline bool	dll_del(dll_t *restrict dll, dll_obj_t *restrict obj);
-/**
- * Delete links and free it to at most \param n object in \param dll list, starting from \param start indexed object
- */
-static inline size_t	dll_deln(dll_t *restrict dll, size_t start, size_t n);
+static inline dll_obj_t *dll_push_front(dll_t *restrict dll, dll_obj_t *restrict obj);
 
 /**
- * Delete object by data(key) from start via \param fn_search_del and dll_find
- * \param ptr just going to the second argument of your handler if you need additional data to compare data inside the object
+ * \brief Push a \c obj list-object to end of given \c dll list.
+ *
+ * \param dll destination list.
+ * \param obj list-object.
+ *
+ * \return \c obj
  */
-static inline bool	dll_delkey(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search_del,
-		void *restrict ptr);
-// The same as dll_delkey but using dll_findr instead of dll_find
-static inline bool	dll_delkeyr(dll_t *restrict dll,
-		dll_obj_handler_fn_t fn_search_del,
-		void *restrict ptr);
+static inline dll_obj_t *dll_push_back(dll_t *restrict dll, dll_obj_t *restrict obj);
 
 /**
- * Delete object by index from start via dll_findid
+ * \brief Creating a new list-object via \c dll_new_obj and pushing it in front of list \c dll.
+ *
+ * \param dll destination list.
+ * \param data any data you want to put inside of list.
+ * \param size size of \c data.
+ * \param fn_free callback-function to manually free anything inside \c data on deleting the list-object.
+ *  Notice: \c data itself will be freed automatically with \c free if a \c fn_free function was specified.
+ *  Use \c LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c data, but the \c data itself was allocated.
+ *
+ * \return a new created list-object.
  */
-static inline bool	dll_delid(dll_t *restrict dll, size_t index);
-/**
- * Delete object by index from end via dll_findidr
- */
-static inline bool	dll_delidr(dll_t *restrict dll, size_t index);
+static inline dll_obj_t *dll_emplace_front(dll_t *restrict dll, void *restrict data, size_t size, dll_callback_fn_t fn_free);
 
 /**
- * Free all objects and list
+ * \brief Creating a new list-object via \c dll_new_obj and pushing it in end of list \c dll.
+ *
+ * \param dll destination list.
+ * \param data any data you want to put inside of list.
+ * \param size size of \c data.
+ * \param fn_free callback-function to manually free anything inside \c data on deleting the list-object.
+ *  Notice: \c data itself will be freed automatically with \c free if a \c fn_free function was specified.
+ *  Use \c LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c data, but the \c data itself was allocated.
+ *
+ * \return a new created list-object.
  */
-static inline bool	dll_free(dll_t *restrict *restrict dll);
-/**
- * Free all data and given object
- */
-static inline bool	dll_freeobj(dll_obj_t *restrict *restrict obj);
-/**
- * Free only all data inside object
- * This function execute \param fn_free if its was setted-up in dll_new\dll_push*
- */
-static inline bool	dll_freeobjdata(dll_obj_t *restrict *restrict obj);
+static inline dll_obj_t *dll_emplace_back(dll_t *restrict dll, void *restrict data, size_t size, dll_callback_fn_t fn_free);
 
 /**
- * Some basic handlers:
+ * \brief Removes the first list-object of the list.
+ *
+ * \param dll list.
  */
-/**
- * Return match only if data pointer \param obj inside object identical to pointer passed in \param ptr
- */
-static ssize_t	dll_fnptr_ptrobj(void *restrict obj, void *restrict ptr, size_t idx);
-/**
- * Return match only if \param idx inside object identical to index pointer passed in \param ptr
- */
-static ssize_t	dll_fnptr_ptridx(void *restrict obj, void *restrict ptr, size_t idx);
-/**
- * Return match for every object
- */
-static ssize_t	dll_fnptr_any(void *restrict obj, void *restrict ptr, size_t idx);
+static inline void      dll_pop_front(dll_t *restrict dll);
 
-# include "libdll_sources.h"
+/**
+ * \brief Removes the last list-object of the list.
+ *
+ * \param dll list.
+ */
+static inline void      dll_pop_back(dll_t *restrict dll);
+
+/**
+ * \brief Erases all elements from the \c dll list. After this call, \c dll_size returns zero.
+ * Any pointers referring to contained elements can be invalid if you specified a \c fn_free callback-function for each individual list-object.
+ * Also lost memory leaks errors can occur as well if you don't specified a \c fn_free function for each individual list-object but memory inside of this list-object was allocated.
+ *
+ * \param dll list to be cleared.
+ */
+static inline void      dll_clear(dll_t *restrict dll);
+
+/**
+ * \brief Inserts list-object \c obj on the specified location \c pos in the list \c dll.
+ *
+ * \param dll list in which list-object will be inserted.
+ * \param obj list-object to be inserted.
+ * \param pos position in list on which list-object will be inserted(starts from 0 to \c dll_size).
+ *
+ * \return inserted list-object or NULL if something is wrong.
+ */
+static inline dll_obj_t *dll_insert(dll_t *restrict dll, dll_obj_t *restrict obj, size_t pos);
+
+/**
+ * \brief Inserts a new created list-object via \c dll_new_obj on the specified location \c pos in the list \c dll.
+ *
+ * \param dll list in which list-object will be inserted.
+ * \param data any data you want to put inside of list.
+ * \param size size of \c data.
+ * \param fn_free callback-function to manually free anything inside \c data on deleting the list-object.
+ *  Notice: \c data itself will be freed automatically with \c free if a \c fn_free function was specified.
+ *  Use \c LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param pos position in list on which list-object will be inserted(starts from 0 to \c dll_size).
+ *
+ * \return inserted list-object or NULL if something is wrong.
+ */
+static inline dll_obj_t *dll_emplace(dll_t *restrict dll, void *restrict data, size_t size, dll_callback_fn_t fn_free, size_t pos);
+
+/**
+ * \brief Erases the specified list-objects from the list.
+ *
+ * \param dll list from which specified list-objects will be deleted.
+ * \param pos_start Removes the element at \c pos. Or \c start of the range.
+ * \param end End of the range. If \c end is zero or bigger than \c dll_size then only 1 list-object at \c pos_start will be erased.
+ *
+ * \return a last object after deleting range or NULL if: \c dll list has no objects; \c pos_start bigger than list-objects count in \c dll list; \c end is not zero and bigger than \c pos_start.
+ */
+static inline dll_obj_t *dll_erase(dll_t *restrict dll, size_t pos_start, size_t end);
+
+/**
+ * \brief call a \c fn callback-function for each list-object in list \c dll.
+ * Function works only if \c dll and \c fn is not a NULL.
+ *
+ * \param dll list.
+ * \param fn function for each list-object.
+ */
+static inline void      dll_foreach(const dll_t *restrict dll, dll_callback_fn_t fn);
+
+/**
+ * \brief Access the first list-object in \c dll list.
+ *
+ * \param dll list.
+ *
+ * \return Pointer to the first list-object.
+ */
+static inline dll_obj_t *dll_front(const dll_t *restrict dll);
+
+/**
+ * \brief Access the last list-object in \c dll list.
+ *
+ * \param dll list.
+ *
+ * \return Pointer to the last list-object.
+ */
+static inline dll_obj_t *dll_back(const dll_t *restrict dll);
+
+/**
+ * \brief Checks whether the list \c dll is empty.
+ *
+ * \param dll list to check.
+ *
+ * \return true if the list is empty, false otherwise.
+ */
+static inline bool      dll_empty(const dll_t *restrict dll);
+
+/**
+ * \brief Returns the number of elements in the list \c dll.
+ *
+ * \param dll list.
+ *
+ * \return The number of elements in the list.
+ */
+static inline size_t    dll_size(const dll_t *restrict dll);
+
+/**
+ * \brief Merges two lists into a \c dst. After merging \c dst list will be sorted if you specify a \c fn_sort function.
+ *
+ * \param dst destination list.
+ * \param src second list. This list will be clear after merging to \c dst.
+ * \param fn_sort optional argument. if \c fn_sort specified then \c dst after merging will be sorted.
+ */
+static inline void      dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_callback_cmp_fn_t fn_sort);
+
+/**
+ * \brief Transfers list-objects from \c src to \c dst.
+ *
+ * \param dst destination list.
+ * \param src second list. Full or part of this list will be clear after applying this function.
+ * \param dst_pos to what position in list \c dst - list \src will be transfered. (starts from 1)
+ * \param src_start start position of list \c src from which list-objects will be transefered to \c dst. (starts from 1)
+ * \param src_end \c src end position of transfering from a list \c src. (starts from 1)
+ *
+ * \exception If \c dst_pos, \c src_start and \c src_end are zero then just a \c dll_merge will be called.
+ * \exception If \c dst or \c src is NULL then function will do nothing.
+ * \exception If \c src_end less than or equal to \c src_start then function will do nothing.
+ */
+static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t dst_pos, size_t src_start, size_t src_end);
+
+/**
+ * \brief Sorts all the list-objects via \c fn_sort in \c dll list using a recursive merge sort.
+ *
+ * \param dll list to be sorted.
+ * \param fn_sort callback-function to compare list-objects.
+ */
+static inline void      dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort);
+
+/**
+ * \brief Unlink and delete a list-object \c obj from list \c dll.
+ *
+ * \param dll list from which \c obj will be deleted.
+ * \param obj list-object to be deleted.
+ */
+static inline void      dll_del(dll_t *restrict dll, dll_obj_t *restrict obj);
+
+/**
+ * \brief Unlink(only remove from list but not delete) a list-object \c obj from list \c dll.
+ *
+ * \param dll list from which \c obj will be unlinked.
+ * \param obj list-object to be unlinked.
+ *
+ * \return unlinked \c obj.
+ */
+static inline dll_obj_t *dll_unlink(dll_t *restrict dll, dll_obj_t *restrict obj);
+
+/**
+ * \brief Deleting a list-object and data on it.
+ *  BE CERAFUL - It's doesn't works with links to next and previous list-objects,
+ *   so calling this function without \c dll_unlink may cause SIGSEGV in future work with list.
+ *   Better soultion may be for you to use a \c dll_del.
+ *
+ * \param obj a pointer to list-object to be deleted.
+ */
+static inline void      dll_free_obj(dll_obj_t *restrict *restrict obj);
+
+/**
+ * \brief Delete the whole list with all list-objects linked to this list at its data.
+ *
+ * \param dll a pointer to list to be deleted.
+ */
+static inline void      dll_free(dll_t *restrict *restrict dll);
+
+/**
+ * ----------------------------
+ * Macros definitions
+ * ----------------------------
+ */
+
+# ifdef __glibc_likely
+#  define __dll_likely(_cond) __glibc_likely(_cond)
+# else
+#  define __dll_likely(_cond) (_cond)
+# endif
+
+# ifdef __glibc_unlikely
+#  define __dll_unlikely(_cond) __glibc_unlikely(_cond)
+# else
+#  define __dll_unlikely(_cond) (_cond)
+# endif
+
+
+/**
+ * ----------------------------
+ * Function definitions
+ * ----------------------------
+ */
+
+static inline dll_t *dll_init(void) {
+    dll_t *restrict out = calloc(1, sizeof(*out));
+    return out;
+}
+
+static inline dll_obj_t *dll_new_obj(void *restrict data, size_t size, dll_callback_fn_t fn_free) {
+    dll_obj_t *restrict out = NULL;
+
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == (out = calloc(1, sizeof(*out))))) {
+        return NULL;
+    }
+# else
+    out = calloc(1, sizeof(*out));
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    out->data = data;
+    out->data_size = size;
+    out->fn_free = fn_free;
+    return out;
+}
+
+static inline dll_obj_t *dll_push_front(dll_t *restrict dll, dll_obj_t *restrict obj) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == obj)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    obj->next = NULL;
+    obj->prev = NULL;
+
+    ++dll->objs_count;
+    if (NULL == dll->head) {
+        dll->head = dll->last = obj;
+    } else {
+        dll->head->prev = obj;
+        obj->next = dll->head;
+        dll->head = obj;
+    }
+    return obj;
+}
+
+static inline dll_obj_t *dll_push_back(dll_t *restrict dll, dll_obj_t *restrict obj) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == obj)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    obj->next = NULL;
+    obj->prev = NULL;
+
+    ++dll->objs_count;
+    if (NULL == dll->head) {
+        dll->head = dll->last = obj;
+    } else {
+        dll->last->next = obj;
+        obj->prev = dll->last;
+        dll->last = obj;
+    }
+    return obj;
+}
+
+static inline dll_obj_t *dll_emplace_front(dll_t *restrict dll, void *restrict data, size_t size, dll_callback_fn_t fn_free) {
+    dll_obj_t *restrict new_obj = dll_new_obj(data, size, fn_free);
+    return dll_push_front(dll, new_obj);
+}
+
+static inline dll_obj_t *dll_emplace_back(dll_t *restrict dll, void *restrict data, size_t size, dll_callback_fn_t fn_free) {
+    dll_obj_t *restrict new_obj = dll_new_obj(data, size, fn_free);
+    return dll_push_back(dll, new_obj);
+}
+
+static inline void  dll_pop_front(dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == dll->head)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_obj_t *restrict save = dll->head->next;
+
+    dll_del(dll, dll->head);
+    dll->head = save;
+}
+
+static inline void  dll_pop_back(dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == dll->last)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_obj_t *restrict save = dll->last->prev;
+
+    dll_del(dll, dll->last);
+    dll->last = save;
+}
+
+static inline void  dll_clear(dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    while (dll->objs_count) {
+        dll_pop_front(dll);
+    }
+}
+
+static inline dll_obj_t *dll_insert(dll_t *restrict dll, dll_obj_t *restrict obj, size_t pos) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == obj)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    if (dll->objs_count < pos) {
+        return NULL;
+    }
+
+    if (NULL == dll->head || 0 == pos) {
+        return dll_emplace_front(dll, obj->data, obj->data_size, obj->fn_free);
+    } else {
+        dll_obj_t *restrict iter = dll->head;
+
+        for (size_t i = 0; (pos - 1) > i && iter; ++i) {
+            iter = iter->next;
+        }
+
+        obj->next = iter->next;
+        obj->prev = iter;
+        if (iter->next) {
+            iter->next->prev = obj;
+        }
+        iter->next = obj;
+
+        ++dll->objs_count;
+
+        return obj;
+    }
+}
+
+static inline dll_obj_t *dll_emplace(dll_t *restrict dll, void *restrict data, size_t size, dll_callback_fn_t fn_free, size_t pos) {
+    dll_obj_t *restrict new_obj = dll_new_obj(data, size, fn_free);
+    return dll_insert(dll, new_obj, pos);
+}
+
+static inline dll_obj_t *__dlli_get_obj_at_index(dll_t *restrict dll, size_t pos) {
+    const size_t        dll_size = dll->objs_count;
+    dll_obj_t *restrict obj = NULL;
+
+    if ((dll_size / 2) >= pos) {
+        obj = dll->head;
+        for (size_t i = 0; obj && pos > i; ++i) {
+            obj = obj->next;
+        }
+    } else {
+        obj = dll->last;
+        for (size_t i = dll_size ? dll_size - 1 : dll_size; obj && pos < i; --i) {
+            obj = obj->prev;
+        }
+    }
+
+    return obj;
+}
+
+static inline dll_obj_t *dll_erase(dll_t *restrict dll, size_t pos_start, size_t end) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    if (0 == dll->objs_count || dll->objs_count < pos_start || (end && pos_start > end)) {
+        return NULL;
+    }
+
+    dll_obj_t *restrict erasing = __dlli_get_obj_at_index(dll, pos_start);
+    dll_obj_t *restrict save = NULL;
+    size_t i = pos_start ? pos_start - 1 : pos_start;
+
+    do {
+        save = erasing->next;
+        dll_del(dll, erasing);
+        erasing = save;
+    } while (end > i++ && erasing);
+
+    return erasing ? erasing : dll->last;
+}
+
+static inline void      dll_foreach(const dll_t *restrict dll, dll_callback_fn_t fn) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == fn)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
+        fn(iobj->data);
+    }
+}
+
+static inline dll_obj_t *dll_front(const dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    return dll->head;
+}
+
+static inline dll_obj_t *dll_back(const dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    return dll->last;
+}
+
+static inline bool      dll_empty(const dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    return !(dll && !!dll->objs_count);
+# else
+    return !!dll->objs_count;
+# endif /* LIBDLL_UNSAFE_USAGE */
+}
+
+static inline size_t    dll_size(const dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll)) {
+        return 0;
+    } else {
+        return dll->objs_count;
+    }
+# else
+    return dll->objs_count;
+# endif /* LIBDLL_UNSAFE_USAGE */
+}
+
+static inline void  dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_callback_cmp_fn_t fn_sort) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dst || NULL == src)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    for (dll_obj_t *restrict iobj = src->head; iobj; iobj = iobj->next) {
+        dll_emplace_back(dst, iobj->data, iobj->data_size, iobj->fn_free);
+        dll_unlink(src, iobj);
+    }
+}
+
+static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t dst_pos, size_t src_start, size_t src_end) {
+    if (0 == dst_pos && 0 == src_start && 0 == src_end) {
+        dll_merge(dst, src, NULL);
+    }
+
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dst || NULL == src)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    if ((src_end && src_start > src_end) || 0 == src->objs_count) {
+        return ;
+    }
+
+    dll_obj_t *restrict dst_pos_obj = __dlli_get_obj_at_index(dst, dst_pos);
+    dll_obj_t *restrict src_pos_obj = __dlli_get_obj_at_index(src, src_start);
+    dll_obj_t *restrict src_pos_end_obj = __dlli_get_obj_at_index(src, src_end);
+    size_t spliced_size = 0;
+
+    if (0 == src_start && 0 == src_end) {
+        spliced_size = src->objs_count;
+    } else if (src_start && 0 == src_end) {
+        spliced_size = src->objs_count - (src->objs_count - src_start);
+    } else {
+        spliced_size =
+            (src_end > src->objs_count
+                ? src->objs_count
+                : (src_end + 1))
+            - src_start;
+    }
+
+    printf("\n\n---------\n\nBEFORE:\n\n");
+    printf(" | ─────── dst->head: %p(%d); dst->last: %p(%d); size: %ld\n",
+        dst->head, ((t_itest*)(dst->head->data))->a,
+        dst->last, ((t_itest*)(dst->last->data))->a, dst->objs_count);
+    printf(" | ─────── src->head: %p(%d); src->last: %p(%d); size: %ld\n",
+        src->head, ((t_itest*)(src->head->data))->a,
+        src->last, ((t_itest*)(src->last->data))->a, dst->objs_count);
+    printf(" | ─────── pos args: %ld %ld %ld\n", dst_pos, src_start, src_end);
+    printf(" |\n");
+    printf(" | ──── spliced_size: %ld\n", spliced_size);
+    printf(" | ──── dst_pos_obj: %p(%d)\n", dst_pos_obj, ((t_itest*)(dst_pos_obj->data))->a);
+    printf(" | ──── src_pos_obj: %p(%d)\n", src_pos_obj, ((t_itest*)(src_pos_obj->data))->a);
+    printf(" | ──── src_pos_end_obj: %p(%d)\n", src_pos_end_obj, ((t_itest*)(src_pos_end_obj->data))->a);
+
+    dst->objs_count += spliced_size;
+    src->objs_count -= spliced_size;
+
+    if (NULL == src_pos_end_obj->next) {
+        src->last = src_pos_obj->prev;
+    }
+    if (NULL == dst_pos_obj->next) {
+        dst->last = src_pos_end_obj;
+    }
+
+    if (src_pos_obj->prev) {
+        src_pos_obj->prev->next = src_pos_end_obj->next;
+    }
+    if (dst_pos && dst_pos_obj->next) {
+        dst_pos_obj->next->prev = src_pos_end_obj;
+    }
+    if (0 == dst_pos) {
+        src_pos_end_obj->next = dst->head;
+        src_pos_obj->prev = NULL;
+        dst->head = src_pos_obj;
+    } else {
+        src_pos_end_obj->next = dst_pos_obj->next;
+        src_pos_obj->prev = dst_pos_obj;
+        dst_pos_obj->next = src_pos_obj;
+    }
+
+    printf("\n\n---------\n\nAFTER:\n\n");
+    printf(" | ─── dst size: %ld; src size: %ld;\n", dst->objs_count, src->objs_count);
+    printf(" | ─── dst->head: %p(%d); dst->last: %p(%d);\n",
+        dst->head, ((t_itest*)(dst->head->data))->a,
+        dst->last, ((t_itest*)(dst->last->data))->a);
+    printf(" | ─── src->head: %p(%d); src->last: %p(%d);\n",
+        src->head, ((t_itest*)(src->head->data))->a,
+        src->last, ((t_itest*)(src->last->data))->a);
+    printf("\n\n\n");
+}
+
+static inline dll_obj_t *__dlli_msort(dll_obj_t *restrict first, dll_obj_t *restrict second, dll_callback_cmp_fn_t fn_sort) {
+    if (NULL == first) {
+        return second;
+    }
+    if (NULL == second) {
+        return first;
+    }
+
+    if (0 > fn_sort(first->data, second->data)) {
+        first->next = __dlli_msort(first->next, second, fn_sort);
+        first->next->prev = first;
+        first->prev = NULL;
+        return first;
+    } else {
+        second->next = __dlli_msort(first, second->next, fn_sort);
+        second->next->prev = second;
+        second->prev = NULL;
+        return second;
+    }
+}
+
+static inline dll_obj_t *__dlli_msort_parts(dll_obj_t *restrict head, dll_callback_cmp_fn_t fn_sort) {
+    if (NULL == head || NULL == head->next) {
+        return head;
+    }
+
+    dll_obj_t *restrict ifast = head;
+    dll_obj_t *restrict islow = head;
+
+    while (ifast->next && ifast->next->next) {
+        ifast = ifast->next->next;
+        islow = islow->next;
+    }
+
+    dll_obj_t *restrict half = islow->next;
+    islow->next = NULL;
+
+    head = __dlli_msort_parts(head, fn_sort);
+    half = __dlli_msort_parts(half, fn_sort);
+
+    return __dlli_msort(head, half, fn_sort);
+}
+
+static inline void  dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == fn_sort)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+    if (NULL == dll->head || NULL == dll->head->next) {
+        return ;
+    }
+
+    dll->head = __dlli_msort_parts(dll->head, fn_sort);
+
+    /* okay, maybe this code isn't good, but i can't find any other solution to update dll->last pointer */
+    for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
+        dll->last = iobj;
+    }
+}
+
+static inline void  dll_del(dll_t *restrict dll, dll_obj_t *restrict obj) {
+    dll_obj_t *restrict del_obj = dll_unlink(dll, obj);
+
+    dll_free_obj(&del_obj);
+}
+
+static inline dll_obj_t *dll_unlink(dll_t *restrict dll, dll_obj_t *restrict obj) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == obj)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    --dll->objs_count;
+    if (obj->prev) {
+        obj->prev->next = obj->next;
+    } else {
+        dll->head = obj->next;
+    }
+    if (obj->next) {
+        obj->next->prev = obj->prev;
+    } else {
+        dll->last = obj->prev;
+    }
+    return obj;
+}
+
+static inline void  dll_free_obj(dll_obj_t *restrict *restrict obj) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == obj || NULL == *obj)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    if ((*obj)->fn_free) {
+        if (LIBDLL_FN_FREE_CLEARANCE != (*obj)->fn_free) {
+            (*obj)->fn_free((*obj)->data);
+        }
+        if ((*obj)->data) {
+            free((*obj)->data);
+        }
+    }
+
+    (*obj)->data = NULL;
+    free(*obj);
+    *obj = NULL;
+}
+
+static inline void  dll_free(dll_t *restrict *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == *dll)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_obj_t *restrict iobj = (*dll)->head;
+    dll_obj_t *restrict save = NULL;
+
+    while (iobj) {
+        save = iobj->next;
+        dll_free_obj(&iobj);
+        iobj = save;
+    }
+
+    free(*dll);
+    *dll = NULL;
+}
+
+static inline void  __dlli_memcpy(dll_obj_t *restrict a, dll_obj_t *restrict b) {
+    __u_char *restrict  aptr = (__u_char *restrict)a;
+    __u_char *restrict  bptr = (__u_char *restrict)b;
+    const size_t        offsetnp = offsetof(dll_obj_t, data);
+    const size_t        sizecopy = sizeof(*a) - offsetnp;
+
+    memcpy(aptr + offsetnp, bptr + offsetnp, sizecopy);
+}
+
+static inline bool  dll_swap_obj(dll_obj_t *restrict a, dll_obj_t *restrict b) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == a || NULL == b)) {
+        return false;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_obj_t   c = *a;
+    __dlli_memcpy(a, b);
+    __dlli_memcpy(b, &c);
+    return true;
+}
+
+static inline dll_t *dll_reverse(dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(!dll)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    for (dll_obj_t *restrict ihead = dll->head, *restrict ilast = dll->last;
+            ihead && ilast && ihead != ilast;
+            ihead = ihead->next, ilast = ilast->prev) {
+        dll_swap_obj(ihead, ilast);
+    }
+    return dll;
+}
+
+static inline dll_t *dll_reverse_dup(dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(!dll)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_t *restrict out = dll_init();
+
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == out)) {
+        return NULL;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
+        dll_emplace_front(out, iobj->data, iobj->data_size, iobj->fn_free);
+    }
+    return out;
+}
 
 #endif /* LIBDLL_H */
