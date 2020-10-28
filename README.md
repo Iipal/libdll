@@ -1,10 +1,8 @@
 # libdll
 Header-only library for work with Double Linked Lists(or Bidirectional Lists)
 
-## [Wiki](https://github.com/Iipal/libdll/wiki)
+This is a simplest libdll implementation based on C++11 `std::list` methods and **without** errno codes, messages also without asserts.
 
-## [Example](https://github.com/Iipal/libdll/tree/master/example)
-
-## [Documentation](https://github.com/Iipal/libdll/wiki/Documentation)
+## [Example || Tests](https://github.com/Iipal/libdll/tree/cpp11-std-min/tests)
 
 __Thanks and have fun =)__
