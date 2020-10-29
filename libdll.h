@@ -301,7 +301,7 @@ static inline void      dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_
  * \param src_start start position of list \c src from which list-objects will be transefered to \c dst. (starts from 1)
  * \param src_end \c src end position of transfering from a list \c src. (starts from 1)
  *
- * \exception If \c dst_pos, \c src_start and \c src_end are zero then just a \c dll_merge will be called.
+ * \exception If \c dst_pos, \c src_start, and \c src_end are zero, OR \a dst_pos, \a src_start are non zero but \a src_end are zero - then just a \c dll_merge will be called.
  * \exception If \c dst or \c src is NULL then function will do nothing.
  * \exception If \c src_end less than or equal to \c src_start then function will do nothing.
  */
@@ -627,17 +627,22 @@ static inline void  dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_call
     }
 # endif /* LIBDLL_UNSAFE_USAGE */
 
-    for (dll_obj_t *restrict iobj = src->head; iobj; iobj = iobj->next) {
+    dll_obj_t *restrict iobj = src->head;
+    dll_obj_t *restrict save = NULL;
+
+    while (iobj) {
         dll_emplace_back(dst, iobj->data, iobj->data_size, iobj->fn_free);
-        dll_unlink(src, iobj);
+        save = iobj->next;
+        dll_del(src, iobj);
+        iobj = save;
+    }
+
+    if (NULL != fn_sort) {
+        dll_sort(dst, fn_sort);
     }
 }
 
 static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t dst_pos, size_t src_start, size_t src_end) {
-    if (0 == dst_pos && 0 == src_start && 0 == src_end) {
-        dll_merge(dst, src, NULL);
-    }
-
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dst || NULL == src)) {
         return ;
@@ -648,9 +653,15 @@ static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t 
         return ;
     }
 
+    if ((0 == dst_pos && 0 == src_start && 0 == src_end)
+    || ((dst_pos >= dst->objs_count) && (src_start >= src->objs_count) && (0 == src_end))) {
+        dll_merge(dst, src, NULL);
+        return ;
+    }
+
     dll_obj_t *restrict dst_pos_obj = __dlli_get_obj_at_index(dst, dst_pos);
     dll_obj_t *restrict src_pos_obj = __dlli_get_obj_at_index(src, src_start);
-    dll_obj_t *restrict src_pos_end_obj = __dlli_get_obj_at_index(src, src_end);
+    dll_obj_t *restrict src_pos_end_obj = __dlli_get_obj_at_index(src, src_end ? src_end : src->objs_count);
     size_t spliced_size = 0;
 
     if (0 == src_start && 0 == src_end) {
@@ -665,19 +676,21 @@ static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t 
             - src_start;
     }
 
+# ifdef LIBDLL_DEBUG_DATA
     printf("\n\n---------\n\nBEFORE:\n\n");
-    printf(" | ─────── dst->head: %p(%d); dst->last: %p(%d); size: %ld\n",
-        dst->head, ((t_itest*)(dst->head->data))->a,
-        dst->last, ((t_itest*)(dst->last->data))->a, dst->objs_count);
-    printf(" | ─────── src->head: %p(%d); src->last: %p(%d); size: %ld\n",
+    printf(" | ─────── dst->head: %016p(%d); dst->last: %016p(%d); size: %ld\n",
+        dst->head, dst->head ? ((t_itest*)(dst->head->data))->a : 0,
+        dst->last, dst->head ? ((t_itest*)(dst->last->data))->a : 0, dst->objs_count);
+    printf(" | ─────── src->head: %016p(%d); src->last: %016p(%d); size: %ld\n",
         src->head, ((t_itest*)(src->head->data))->a,
-        src->last, ((t_itest*)(src->last->data))->a, dst->objs_count);
-    printf(" | ─────── pos args: %ld %ld %ld\n", dst_pos, src_start, src_end);
+        src->last, ((t_itest*)(src->last->data))->a, src->objs_count);
+    printf(" | ─────── dst_pos: %ld; src_start: %ld; src_end: %ld;\n", dst_pos, src_start, src_end);
     printf(" |\n");
+    printf(" | ──── dst_pos_obj: %016p(%d)\n", dst_pos_obj, dst_pos_obj ? ((t_itest*)(dst_pos_obj->data))->a : 0);
+    printf(" | ──── src_pos_obj: %016p(%d)\n", src_pos_obj, ((t_itest*)(src_pos_obj->data))->a);
+    printf(" | ──── src_pos_end_obj: %016p(%d)\n", src_pos_end_obj, ((t_itest*)(src_pos_end_obj->data))->a);
     printf(" | ──── spliced_size: %ld\n", spliced_size);
-    printf(" | ──── dst_pos_obj: %p(%d)\n", dst_pos_obj, ((t_itest*)(dst_pos_obj->data))->a);
-    printf(" | ──── src_pos_obj: %p(%d)\n", src_pos_obj, ((t_itest*)(src_pos_obj->data))->a);
-    printf(" | ──── src_pos_end_obj: %p(%d)\n", src_pos_end_obj, ((t_itest*)(src_pos_end_obj->data))->a);
+# endif /* LIBDLL_DEBUG_DATA */
 
     dst->objs_count += spliced_size;
     src->objs_count -= spliced_size;
@@ -685,8 +698,11 @@ static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t 
     if (NULL == src_pos_end_obj->next) {
         src->last = src_pos_obj->prev;
     }
-    if (NULL == dst_pos_obj->next) {
+    if (NULL == dst_pos_obj || (dst_pos_obj && NULL == dst_pos_obj->next)) {
         dst->last = src_pos_end_obj;
+    }
+    if (0 == src_start) {
+        src->head = src_pos_end_obj->next;
     }
 
     if (src_pos_obj->prev) {
@@ -700,20 +716,28 @@ static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t 
         src_pos_obj->prev = NULL;
         dst->head = src_pos_obj;
     } else {
-        src_pos_end_obj->next = dst_pos_obj->next;
-        src_pos_obj->prev = dst_pos_obj;
-        dst_pos_obj->next = src_pos_obj;
+        if (dst_pos_obj) {
+            src_pos_end_obj->next = dst_pos_obj->next;
+            src_pos_obj->prev = dst_pos_obj;
+            dst_pos_obj->next = src_pos_obj;
+        } else {
+            src_pos_end_obj->next = NULL;
+            src_pos_obj->prev = NULL;
+            dst->head = src_pos_obj;
+            dst->last = src_pos_end_obj;
+        }
     }
 
+# ifdef LIBDLL_DEBUG_DATA
     printf("\n\n---------\n\nAFTER:\n\n");
-    printf(" | ─── dst size: %ld; src size: %ld;\n", dst->objs_count, src->objs_count);
-    printf(" | ─── dst->head: %p(%d); dst->last: %p(%d);\n",
-        dst->head, ((t_itest*)(dst->head->data))->a,
-        dst->last, ((t_itest*)(dst->last->data))->a);
-    printf(" | ─── src->head: %p(%d); src->last: %p(%d);\n",
+    printf(" | ─────── dst->head: %016p(%d); dst->last: %016p(%d); size: %ld\n",
+        dst->head, dst->head ? ((t_itest*)(dst->head->data))->a : 0,
+        dst->last, dst->last ? ((t_itest*)(dst->last->data))->a : 0, dst->objs_count);
+    printf(" | ─────── src->head: %016p(%d); src->last: %016p(%d); size: %ld\n",
         src->head, ((t_itest*)(src->head->data))->a,
-        src->last, ((t_itest*)(src->last->data))->a);
+        src->last, ((t_itest*)(src->last->data))->a, src->objs_count);
     printf("\n\n\n");
+# endif /* LIBDLL_DEBUG_DATA */
 }
 
 static inline dll_obj_t *__dlli_msort(dll_obj_t *restrict first, dll_obj_t *restrict second, dll_callback_cmp_fn_t fn_sort) {
