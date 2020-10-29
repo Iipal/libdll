@@ -110,7 +110,22 @@ int main(void) {
 
         dll_splice(dll, dll2, dll_size(dll), 0, 2);
 
-        printf("\n return back all values with dll_splice:\n  dll1(%ld):\n", dll_size(dll));
+        printf("\n return back all values with dll_splice:\n\n");
+        printf("  dll1(%ld):\n", dll_size(dll));
+        dll_foreach(dll, itest_printer);
+        printf("  dll2(%ld):\n", dll_size(dll2));
+        dll_foreach(dll2, itest_printer);
+
+        dll_splice(dll, dll2, dll_size(dll), dll_size(dll2), 0);
+
+        printf("\n  dll1(%ld):\n", dll_size(dll));
+        dll_foreach(dll, itest_printer);
+        printf("  dll2(%ld):\n", dll_size(dll2));
+        dll_foreach(dll2, itest_printer);
+
+        dll_splice(dll2, dll, 0, 5, 0);
+
+        printf("\n  dll1(%ld):\n", dll_size(dll));
         dll_foreach(dll, itest_printer);
         printf("  dll2(%ld):\n", dll_size(dll2));
         dll_foreach(dll2, itest_printer);
