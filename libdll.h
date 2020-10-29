@@ -56,13 +56,15 @@
 
 /**
  * \brief A callback funcion typedef for comparing \c data from 2 list-objects.
+ *  Or list-object with any other given data by user.
+ *  For example: \a dll_remove or \a dll_sort.
  *
- * \param obj1_data list-object data.
- * \param obj2_data other list-object data.
+ * \param obj_data list-object data.
+ * \param other other list-object data.
  *
  * \return comparing result value.
  */
-typedef ssize_t (*dll_callback_cmp_fn_t)(void *restrict obj1_data, void *restrict obj2_data);
+typedef ssize_t (*dll_callback_cmp_fn_t)(void *restrict obj_data, void *restrict other);
 
 /**
  * \brief A callback function typedef for interact with list-object data.
@@ -306,6 +308,18 @@ static inline void      dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_
  * \exception If \c src_end less than or equal to \c src_start then function will do nothing.
  */
 static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t dst_pos, size_t src_start, size_t src_end);
+
+/**
+ * \brief Removes all list-objects satisfying specific criteria \a value via \a fn_cmp from \a dll.
+ *  Applies for all list-objects for which \a fn_cmp return a positive value.
+ *
+ * \param dll list from which list-objects will be removed.
+ * \param value any data to be compared with each list-object.
+ * \param fn_cmp comparator for list-objects data and given \a value.
+ *
+ * \return count of deleted objects from list \a dll.
+ */
+static inline size_t    dll_remove(dll_t *restrict dll, void *restrict value, dll_callback_cmp_fn_t fn_cmp);
 
 /**
  * \brief Sorts all the list-objects via \c fn_sort in \c dll list using a recursive merge sort.
@@ -740,6 +754,29 @@ static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t 
 # endif /* LIBDLL_DEBUG_DATA */
 }
 
+static inline size_t    dll_remove(dll_t *restrict dll, void *restrict value, dll_callback_cmp_fn_t fn_cmp) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
+        return 0;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_obj_t *restrict iobj = dll->head;
+    dll_obj_t *restrict save = NULL;
+    size_t  removed_objs = 0;
+
+    while (iobj) {
+        save = iobj->next;
+        if (0 < fn_cmp(iobj->data, value)) {
+            dll_del(dll, iobj);
+            ++removed_objs;
+        }
+        iobj = save;
+    }
+
+    return removed_objs;
+}
+
 static inline dll_obj_t *__dlli_msort(dll_obj_t *restrict first, dll_obj_t *restrict second, dll_callback_cmp_fn_t fn_sort) {
     if (NULL == first) {
         return second;
@@ -789,6 +826,7 @@ static inline void  dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort)
         return ;
     }
 # endif /* LIBDLL_UNSAFE_USAGE */
+
     if (NULL == dll->head || NULL == dll->head->next) {
         return ;
     }
