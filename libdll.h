@@ -317,9 +317,28 @@ static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, siz
  * \param value any data to be compared with each list-object.
  * \param fn_cmp comparator for list-objects data and given \a value.
  *
- * \return count of deleted objects from list \a dll.
+ * \return count of removed objects from list \a dll.
  */
 static inline size_t    dll_remove(dll_t *restrict dll, void *restrict value, dll_callback_cmp_fn_t fn_cmp);
+
+/**
+ * \brief Reverses the order of the list-objects in the list.
+ *
+ * \param dll list to be reversed.
+ */
+static inline void      dll_reverse(dll_t *restrict dll);
+
+/**
+ * \brief Removes all consecutive duplicate list-objects from the list.
+ *  Only the first list-object in each group of equal list-objects is left.
+ *  list-objects compares via \a fn_cmp and only if \a fn_cmp returns zero means the list-objects are equal.
+ *
+ * \param dll list to be checked for duplicates.
+ * \param fn_cmp comparator for list-objects.
+ *
+ * \return count of removed objects from list \a dll.
+ */
+static inline size_t    dll_unique(dll_t *restrict dll, dll_callback_cmp_fn_t fn_cmp);
 
 /**
  * \brief Sorts all the list-objects via \c fn_sort in \c dll list using a recursive merge sort.
@@ -389,7 +408,7 @@ static inline void      dll_free(dll_t *restrict *restrict dll);
  * ----------------------------
  */
 
-static inline dll_t *dll_init(void) {
+static inline dll_t     *dll_init(void) {
     dll_t *restrict out = calloc(1, sizeof(*out));
     return out;
 }
@@ -463,7 +482,7 @@ static inline dll_obj_t *dll_emplace_back(dll_t *restrict dll, void *restrict da
     return dll_push_back(dll, new_obj);
 }
 
-static inline void  dll_pop_front(dll_t *restrict dll) {
+static inline void      dll_pop_front(dll_t *restrict dll) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dll || NULL == dll->head)) {
         return ;
@@ -476,7 +495,7 @@ static inline void  dll_pop_front(dll_t *restrict dll) {
     dll->head = save;
 }
 
-static inline void  dll_pop_back(dll_t *restrict dll) {
+static inline void      dll_pop_back(dll_t *restrict dll) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dll || NULL == dll->last)) {
         return ;
@@ -489,7 +508,7 @@ static inline void  dll_pop_back(dll_t *restrict dll) {
     dll->last = save;
 }
 
-static inline void  dll_clear(dll_t *restrict dll) {
+static inline void      dll_clear(dll_t *restrict dll) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dll)) {
         return ;
@@ -634,7 +653,7 @@ static inline size_t    dll_size(const dll_t *restrict dll) {
 # endif /* LIBDLL_UNSAFE_USAGE */
 }
 
-static inline void  dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_callback_cmp_fn_t fn_sort) {
+static inline void      dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_callback_cmp_fn_t fn_sort) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dst || NULL == src)) {
         return ;
@@ -656,7 +675,7 @@ static inline void  dll_merge(dll_t *restrict dst, dll_t *restrict src, dll_call
     }
 }
 
-static inline void  dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t dst_pos, size_t src_start, size_t src_end) {
+static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, size_t dst_pos, size_t src_start, size_t src_end) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dst || NULL == src)) {
         return ;
@@ -777,6 +796,56 @@ static inline size_t    dll_remove(dll_t *restrict dll, void *restrict value, dl
     return removed_objs;
 }
 
+static inline void      __dlli_memcpy(dll_obj_t *restrict a, dll_obj_t *restrict b) {
+    __u_char *restrict  aptr = (__u_char *restrict)a;
+    __u_char *restrict  bptr = (__u_char *restrict)b;
+    const size_t        offsetnp = offsetof(dll_obj_t, data);
+    const size_t        sizecopy = sizeof(*a) - offsetnp;
+
+    memcpy(aptr + offsetnp, bptr + offsetnp, sizecopy);
+}
+
+static inline void      dll_reverse(dll_t *restrict dll) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(!dll)) {
+        return ;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+    for (dll_obj_t *restrict ihead = dll->head, *restrict ilast = dll->last;
+            ihead && ilast && ihead != ilast;
+            ihead = ihead->next, ilast = ilast->prev) {
+        dll_obj_t   temp = *ihead;
+        __dlli_memcpy(ihead, ilast);
+        __dlli_memcpy(ilast, &temp);
+    }
+}
+
+static inline size_t    dll_unique(dll_t *restrict dll, dll_callback_cmp_fn_t fn_cmp) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
+        return 0;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    dll_obj_t *restrict jobj = NULL;
+    dll_obj_t *restrict save = NULL;
+    size_t  removed_objs = 0;
+
+    for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
+        jobj = iobj->next;
+        while (jobj) {
+            save = jobj->next;
+            if (0 == fn_cmp(iobj->data, jobj->data)) {
+                dll_del(dll, jobj);
+                ++removed_objs;
+            }
+            jobj = save;
+        }
+    }
+
+    return removed_objs;
+}
+
 static inline dll_obj_t *__dlli_msort(dll_obj_t *restrict first, dll_obj_t *restrict second, dll_callback_cmp_fn_t fn_sort) {
     if (NULL == first) {
         return second;
@@ -820,7 +889,7 @@ static inline dll_obj_t *__dlli_msort_parts(dll_obj_t *restrict head, dll_callba
     return __dlli_msort(head, half, fn_sort);
 }
 
-static inline void  dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort) {
+static inline void      dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dll || NULL == fn_sort)) {
         return ;
@@ -839,7 +908,7 @@ static inline void  dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort)
     }
 }
 
-static inline void  dll_del(dll_t *restrict dll, dll_obj_t *restrict obj) {
+static inline void      dll_del(dll_t *restrict dll, dll_obj_t *restrict obj) {
     dll_obj_t *restrict del_obj = dll_unlink(dll, obj);
 
     dll_free_obj(&del_obj);
@@ -866,7 +935,7 @@ static inline dll_obj_t *dll_unlink(dll_t *restrict dll, dll_obj_t *restrict obj
     return obj;
 }
 
-static inline void  dll_free_obj(dll_obj_t *restrict *restrict obj) {
+static inline void      dll_free_obj(dll_obj_t *restrict *restrict obj) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == obj || NULL == *obj)) {
         return ;
@@ -887,7 +956,7 @@ static inline void  dll_free_obj(dll_obj_t *restrict *restrict obj) {
     *obj = NULL;
 }
 
-static inline void  dll_free(dll_t *restrict *restrict dll) {
+static inline void      dll_free(dll_t *restrict *restrict dll) {
 # ifndef LIBDLL_UNSAFE_USAGE
     if (__dll_unlikely(NULL == dll || NULL == *dll)) {
         return ;
@@ -905,64 +974,6 @@ static inline void  dll_free(dll_t *restrict *restrict dll) {
 
     free(*dll);
     *dll = NULL;
-}
-
-static inline void  __dlli_memcpy(dll_obj_t *restrict a, dll_obj_t *restrict b) {
-    __u_char *restrict  aptr = (__u_char *restrict)a;
-    __u_char *restrict  bptr = (__u_char *restrict)b;
-    const size_t        offsetnp = offsetof(dll_obj_t, data);
-    const size_t        sizecopy = sizeof(*a) - offsetnp;
-
-    memcpy(aptr + offsetnp, bptr + offsetnp, sizecopy);
-}
-
-static inline bool  dll_swap_obj(dll_obj_t *restrict a, dll_obj_t *restrict b) {
-# ifndef LIBDLL_UNSAFE_USAGE
-    if (__dll_unlikely(NULL == a || NULL == b)) {
-        return false;
-    }
-# endif /* LIBDLL_UNSAFE_USAGE */
-
-    dll_obj_t   c = *a;
-    __dlli_memcpy(a, b);
-    __dlli_memcpy(b, &c);
-    return true;
-}
-
-static inline dll_t *dll_reverse(dll_t *restrict dll) {
-# ifndef LIBDLL_UNSAFE_USAGE
-    if (__dll_unlikely(!dll)) {
-        return NULL;
-    }
-# endif /* LIBDLL_UNSAFE_USAGE */
-
-    for (dll_obj_t *restrict ihead = dll->head, *restrict ilast = dll->last;
-            ihead && ilast && ihead != ilast;
-            ihead = ihead->next, ilast = ilast->prev) {
-        dll_swap_obj(ihead, ilast);
-    }
-    return dll;
-}
-
-static inline dll_t *dll_reverse_dup(dll_t *restrict dll) {
-# ifndef LIBDLL_UNSAFE_USAGE
-    if (__dll_unlikely(!dll)) {
-        return NULL;
-    }
-# endif /* LIBDLL_UNSAFE_USAGE */
-
-    dll_t *restrict out = dll_init();
-
-# ifndef LIBDLL_UNSAFE_USAGE
-    if (__dll_unlikely(NULL == out)) {
-        return NULL;
-    }
-# endif /* LIBDLL_UNSAFE_USAGE */
-
-    for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
-        dll_emplace_front(out, iobj->data, iobj->data_size, iobj->fn_free);
-    }
-    return out;
 }
 
 #endif /* LIBDLL_H */
