@@ -18,6 +18,13 @@ ssize_t ascii_sorter(void *restrict obj1_data, void *restrict obj2_data) {
     return strcmp((const char*)obj1_data, (const char*)obj2_data);
 }
 
+ssize_t str_remover(void *restrict obj_data, void *restrict value) {
+    const char *restrict obj_str = (const char *restrict)obj_data;
+    const char *restrict val_str = (const char *restrict)value;
+
+    return !strcmp(val_str, obj_str);
+}
+
 int main(void) {
     dll_t *restrict dll = dll_init();
 
@@ -130,7 +137,23 @@ int main(void) {
         printf("  dll2(%ld):\n", dll_size(dll2));
         dll_foreach(dll2, itest_printer);
 
-        dll_free(&dll);
+        dll_clear(dll);
         dll_free(&dll2);
+    }
+
+    {
+        dll_emplace_back(dll, "str", sizeof("str"), NULL);
+        dll_emplace_back(dll, "no, it's not a required str", sizeof("no, it's not a required str"), NULL);
+        dll_emplace_back(dll, "str", sizeof("str"), NULL);
+
+        printf("\n ----------\n\ndll_remove tests:\n before(%ld):\n", dll_size(dll));
+        dll_foreach(dll, str_printer);
+
+        const size_t removed = dll_remove(dll, "str", str_remover);
+
+        printf("\n after(%ld) | removed(%ld):\n", dll_size(dll), removed);
+        dll_foreach(dll, str_printer);
+
+        dll_clear(dll);
     }
 }
