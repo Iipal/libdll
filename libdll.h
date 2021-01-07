@@ -349,6 +349,29 @@ static inline size_t    dll_unique(dll_t *restrict dll, dll_callback_cmp_fn_t fn
 static inline void      dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_sort);
 
 /**
+ * \brief Compares two lists is they are equals
+ *
+ * \param dll_a first list to compare
+ * \param dll_b second list to compare
+ * \param fn_cmp if set then list-objects compare by it's data
+ *
+ * \return true if lists are equals
+*/
+static inline bool      dll_is_equal(const dll_t *restrict dll_a, const dll_t *restrict dll_b, dll_callback_cmp_fn_t fn_cmp);
+
+/**
+ * \brief Compares two lists is they are not equals
+ * *using dll_is_equals
+ *
+ * \param dll_a first list to compare
+ * \param dll_b second list to compare
+ * \param fn_cmp if set then list-objects compare by it's data
+ *
+ * \return true if lists are not equals
+*/
+static inline bool      dll_is_not_equal(const dll_t *restrict dll_a, const dll_t *restrict dll_b, dll_callback_cmp_fn_t fn_cmp);
+
+/**
  * \brief Unlink and delete a list-object \c obj from list \c dll.
  *
  * \param dll list from which \c obj will be deleted.
@@ -709,22 +732,6 @@ static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, siz
             - src_start;
     }
 
-# ifdef LIBDLL_DEBUG_DATA
-    printf("\n\n---------\n\nBEFORE:\n\n");
-    printf(" | ─────── dst->head: %016p(%d); dst->last: %016p(%d); size: %ld\n",
-        dst->head, dst->head ? ((t_itest*)(dst->head->data))->a : 0,
-        dst->last, dst->head ? ((t_itest*)(dst->last->data))->a : 0, dst->objs_count);
-    printf(" | ─────── src->head: %016p(%d); src->last: %016p(%d); size: %ld\n",
-        src->head, ((t_itest*)(src->head->data))->a,
-        src->last, ((t_itest*)(src->last->data))->a, src->objs_count);
-    printf(" | ─────── dst_pos: %ld; src_start: %ld; src_end: %ld;\n", dst_pos, src_start, src_end);
-    printf(" |\n");
-    printf(" | ──── dst_pos_obj: %016p(%d)\n", dst_pos_obj, dst_pos_obj ? ((t_itest*)(dst_pos_obj->data))->a : 0);
-    printf(" | ──── src_pos_obj: %016p(%d)\n", src_pos_obj, ((t_itest*)(src_pos_obj->data))->a);
-    printf(" | ──── src_pos_end_obj: %016p(%d)\n", src_pos_end_obj, ((t_itest*)(src_pos_end_obj->data))->a);
-    printf(" | ──── spliced_size: %ld\n", spliced_size);
-# endif /* LIBDLL_DEBUG_DATA */
-
     dst->objs_count += spliced_size;
     src->objs_count -= spliced_size;
 
@@ -760,17 +767,6 @@ static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, siz
             dst->last = src_pos_end_obj;
         }
     }
-
-# ifdef LIBDLL_DEBUG_DATA
-    printf("\n\n---------\n\nAFTER:\n\n");
-    printf(" | ─────── dst->head: %016p(%d); dst->last: %016p(%d); size: %ld\n",
-        dst->head, dst->head ? ((t_itest*)(dst->head->data))->a : 0,
-        dst->last, dst->last ? ((t_itest*)(dst->last->data))->a : 0, dst->objs_count);
-    printf(" | ─────── src->head: %016p(%d); src->last: %016p(%d); size: %ld\n",
-        src->head, ((t_itest*)(src->head->data))->a,
-        src->last, ((t_itest*)(src->last->data))->a, src->objs_count);
-    printf("\n\n\n");
-# endif /* LIBDLL_DEBUG_DATA */
 }
 
 static inline size_t    dll_remove(dll_t *restrict dll, void *restrict value, dll_callback_cmp_fn_t fn_cmp) {
@@ -906,6 +902,40 @@ static inline void      dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_s
     for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
         dll->last = iobj;
     }
+}
+
+static inline bool      dll_is_equal(const dll_t *restrict dll_a, const dll_t *restrict dll_b, dll_callback_cmp_fn_t fn_cmp) {
+# ifndef LIBDLL_UNSAFE_USAGE
+    if (__dll_unlikely(NULL == dll_a || NULL == dll_b)) {
+        return false;
+    }
+# endif /* LIBDLL_UNSAFE_USAGE */
+
+    if (dll_a->objs_count != dll_b->objs_count) {
+        return false;
+    }
+
+    dll_obj_t *restrict iobj_a = dll_a->head;
+    dll_obj_t *restrict iobj_b = dll_b->head;
+
+    for (; iobj_a && iobj_b; iobj_a = iobj_a->next, iobj_b = iobj_b->next) {
+        if (fn_cmp) {
+            if (0 != fn_cmp(iobj_a->data, iobj_b->data)) {
+                return false;
+            }
+        } else {
+            if (iobj_a->data_size != iobj_b->data_size || iobj_a->data != iobj_b->data) {
+                return false;
+            }
+        }
+    }
+
+    return !(iobj_a || iobj_b);
+}
+
+static inline bool      dll_is_not_equal(const dll_t *restrict dll_a, const dll_t *restrict dll_b, dll_callback_cmp_fn_t fn_cmp) {
+    const bool  is_equals = dll_is_equal(dll_a, dll_b, fn_cmp);
+    return !is_equals;
 }
 
 static inline void      dll_del(dll_t *restrict dll, dll_obj_t *restrict obj) {
