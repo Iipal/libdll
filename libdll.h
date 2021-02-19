@@ -49,6 +49,11 @@
 # define LIBDLL_FN_FREE_CLEARANCE ((dll_callback_fn_t)-0x1UL)
 
 /**
+ * \brief Use this macros as \c fn_free argument for \c dll_new_obj if you don't need to free any memory in lists.
+ */
+# define LIBDLL_FN_FREE_NULL ((dll_callback_fn_t)NULL)
+
+/**
  * ----------------------------
  * Data structure definitions
  * ----------------------------
@@ -976,7 +981,7 @@ static inline void      dll_free_obj(dll_obj_t *restrict *restrict obj) {
         if (LIBDLL_FN_FREE_CLEARANCE != (*obj)->fn_free) {
             (*obj)->fn_free((*obj)->data);
         }
-        if ((*obj)->data) {
+        if (LIBDLL_FN_FREE_NULL != (*obj)->data) {
             free((*obj)->data);
         }
     }
