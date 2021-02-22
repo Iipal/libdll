@@ -100,13 +100,13 @@ typedef struct s_dll_obj {
 /**
  * \brief A doubly linked list structure.
  *
- * \param head a first element of list.
- * \param last a last element of list.
+ * \param head a head of list.
+ * \param tail a tail of list.
  * \param objs_count a counter of list-objects in list.
  */
 typedef struct s_dll {
-    dll_obj_t *restrict head;       /** a first element of list. */
-    dll_obj_t *restrict last;       /** a last element of list. */
+    dll_obj_t *restrict head;       /** a head of list. */
+    dll_obj_t *restrict tail;       /** a tail of list. */
     size_t              objs_count; /** a counter of list-objects in list. */
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_t;
 
@@ -193,7 +193,7 @@ static inline dll_obj_t *dll_emplace_back(dll_t *restrict dll, void *restrict da
 static inline void      dll_pop_front(dll_t *restrict dll);
 
 /**
- * \brief Removes the last list-object of the list.
+ * \brief Removes the last(tail) list-object of the list.
  *
  * \param dll list.
  */
@@ -241,7 +241,7 @@ static inline dll_obj_t *dll_emplace(dll_t *restrict dll, void *restrict data, s
  * \param pos_start Removes the element at \c pos. Or \c start of the range.
  * \param end End of the range. If \c end is zero or bigger than \c dll_size then only 1 list-object at \c pos_start will be erased.
  *
- * \return a last object after deleting range or NULL if: \c dll list has no objects; \c pos_start bigger than list-objects count in \c dll list; \c end is not zero and bigger than \c pos_start.
+ * \return a last(tail) object after deleting range or NULL if: \c dll list has no objects; \c pos_start bigger than list-objects count in \c dll list; \c end is not zero and bigger than \c pos_start.
  */
 static inline dll_obj_t *dll_erase(dll_t *restrict dll, size_t pos_start, size_t end);
 
@@ -255,20 +255,20 @@ static inline dll_obj_t *dll_erase(dll_t *restrict dll, size_t pos_start, size_t
 static inline void      dll_foreach(const dll_t *restrict dll, dll_callback_fn_t fn);
 
 /**
- * \brief Access the first list-object in \c dll list.
+ * \brief Access the first(head) list-object in \c dll list.
  *
  * \param dll list.
  *
- * \return Pointer to the first list-object.
+ * \return Pointer to the first(head) list-object.
  */
 static inline dll_obj_t *dll_front(const dll_t *restrict dll);
 
 /**
- * \brief Access the last list-object in \c dll list.
+ * \brief Access the last(tail) list-object in \c dll list.
  *
  * \param dll list.
  *
- * \return Pointer to the last list-object.
+ * \return Pointer to the last(tail) list-object.
  */
 static inline dll_obj_t *dll_back(const dll_t *restrict dll);
 
@@ -470,7 +470,7 @@ static inline dll_obj_t *dll_push_front(dll_t *restrict dll, dll_obj_t *restrict
 
     ++dll->objs_count;
     if (NULL == dll->head) {
-        dll->head = dll->last = obj;
+        dll->head = dll->tail = obj;
     } else {
         dll->head->prev = obj;
         obj->next = dll->head;
@@ -491,11 +491,11 @@ static inline dll_obj_t *dll_push_back(dll_t *restrict dll, dll_obj_t *restrict 
 
     ++dll->objs_count;
     if (NULL == dll->head) {
-        dll->head = dll->last = obj;
+        dll->head = dll->tail = obj;
     } else {
-        dll->last->next = obj;
-        obj->prev = dll->last;
-        dll->last = obj;
+        dll->tail->next = obj;
+        obj->prev = dll->tail;
+        dll->tail = obj;
     }
     return obj;
 }
@@ -525,15 +525,15 @@ static inline void      dll_pop_front(dll_t *restrict dll) {
 
 static inline void      dll_pop_back(dll_t *restrict dll) {
 # ifndef LIBDLL_UNSAFE_USAGE
-    if (__dll_unlikely(NULL == dll || NULL == dll->last)) {
+    if (__dll_unlikely(NULL == dll || NULL == dll->tail)) {
         return ;
     }
 # endif /* LIBDLL_UNSAFE_USAGE */
 
-    dll_obj_t *restrict save = dll->last->prev;
+    dll_obj_t *restrict save = dll->tail->prev;
 
-    dll_del(dll, dll->last);
-    dll->last = save;
+    dll_del(dll, dll->tail);
+    dll->tail = save;
 }
 
 static inline void      dll_clear(dll_t *restrict dll) {
@@ -596,7 +596,7 @@ static inline dll_obj_t *__dlli_get_obj_at_index(dll_t *restrict dll, size_t pos
             obj = obj->next;
         }
     } else {
-        obj = dll->last;
+        obj = dll->tail;
         for (size_t i = dll_size ? dll_size - 1 : dll_size; obj && pos < i; --i) {
             obj = obj->prev;
         }
@@ -626,7 +626,7 @@ static inline dll_obj_t *dll_erase(dll_t *restrict dll, size_t pos_start, size_t
         erasing = save;
     } while (end > i++ && erasing);
 
-    return erasing ? erasing : dll->last;
+    return erasing ? erasing : dll->tail;
 }
 
 static inline void      dll_foreach(const dll_t *restrict dll, dll_callback_fn_t fn) {
@@ -658,7 +658,7 @@ static inline dll_obj_t *dll_back(const dll_t *restrict dll) {
     }
 # endif /* LIBDLL_UNSAFE_USAGE */
 
-    return dll->last;
+    return dll->tail;
 }
 
 static inline bool      dll_empty(const dll_t *restrict dll) {
@@ -741,10 +741,10 @@ static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, siz
     src->objs_count -= spliced_size;
 
     if (NULL == src_pos_end_obj->next) {
-        src->last = src_pos_obj->prev;
+        src->tail = src_pos_obj->prev;
     }
     if (NULL == dst_pos_obj || (dst_pos_obj && NULL == dst_pos_obj->next)) {
-        dst->last = src_pos_end_obj;
+        dst->tail = src_pos_end_obj;
     }
     if (0 == src_start) {
         src->head = src_pos_end_obj->next;
@@ -769,7 +769,7 @@ static inline void      dll_splice(dll_t *restrict dst, dll_t *restrict src, siz
             src_pos_end_obj->next = NULL;
             src_pos_obj->prev = NULL;
             dst->head = src_pos_obj;
-            dst->last = src_pos_end_obj;
+            dst->tail = src_pos_end_obj;
         }
     }
 }
@@ -812,11 +812,11 @@ static inline void      dll_reverse(dll_t *restrict dll) {
         return ;
     }
 # endif /* LIBDLL_UNSAFE_USAGE */
-    for (dll_obj_t *restrict ihead = dll->head, *restrict ilast = dll->last;
-            ihead && ilast && ihead != ilast;
-            ihead = ihead->next, ilast = ilast->prev) {
-        dll_obj_t   temp = *ihead;
-        __dlli_memcpy(ihead, ilast);
+    for (dll_obj_t *restrict ifirst = dll->head, *restrict ilast = dll->tail;
+            ifirst && ilast && ifirst != ilast;
+            ifirst = ifirst->next, ilast = ilast->prev) {
+        dll_obj_t   temp = *ifirst;
+        __dlli_memcpy(ifirst, ilast);
         __dlli_memcpy(ilast, &temp);
     }
 }
@@ -903,9 +903,9 @@ static inline void      dll_sort(dll_t *restrict dll, dll_callback_cmp_fn_t fn_s
 
     dll->head = __dlli_msort_parts(dll->head, fn_sort);
 
-    /* okay, maybe this code isn't good, but i can't find any other solution to update dll->last pointer */
+    /* okay, maybe this code isn't good, but i can't find any other solution to update dll->tail pointer */
     for (dll_obj_t *restrict iobj = dll->head; iobj; iobj = iobj->next) {
-        dll->last = iobj;
+        dll->tail = iobj;
     }
 }
 
@@ -965,7 +965,7 @@ static inline dll_obj_t *dll_unlink(dll_t *restrict dll, dll_obj_t *restrict obj
     if (obj->next) {
         obj->next->prev = obj->prev;
     } else {
-        dll->last = obj->prev;
+        dll->tail = obj->prev;
     }
     return obj;
 }
