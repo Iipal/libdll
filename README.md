@@ -43,21 +43,26 @@ int     main(void) {
      * Also by passing any data in to list it's will not be duplicated.
      * If you need this behavior - made it by yourself,
      * by following this steps for all the data before it will be passed to the list:
-     *  1. allocating memory amd copying to it any data.
+     *  1. allocating memory and copying to it any data.
      *  2. passing it to dll_emplace\dll_push with specifying an fn_free function(
      *      or use a LIBDLL_FN_FREE_CLEARANCE if you need just free(3) apply to allocated data
      *     ).
      */
-    size_t i;
+    size_t          i;
+    const size_t    iterator_size = sizeof(i);
+
     for (i = 0; 10 > i; ++i) {
-        dll_emplace_back(list, &i, sizeof(i), LIBDLL_FN_FREE_NULL);
+        size_t  *iterator_mem_chunk = calloc(1, iterator_size);
+        memcpy(iterator_mem_chunk, &i, iterator_size);
+
+        dll_emplace_back(list, iterator_mem_chunk, iterator_size, LIBDLL_FN_FREE_CLEARANCE);
     }
+
     dll_foreach(list, print_list_number_data);
 
     // For correct work without memory leaks - dll_free is required.
     dll_free(&list);
 }
-
 ```
 
 ## By the way: everything has it's own, well-written, documentation.
