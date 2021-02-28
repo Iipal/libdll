@@ -7,9 +7,15 @@ If you need all of this, check [this](https://github.com/Iipal/libdll/tree/empty
 
 **Thanks and have fun =)**
 
+## DEBUG INFO BRANCH
+This is branch with debug logger added to cpp11-std-min branch. Follow the updated example bellow to test it.
+Be ceraful, because it's header-only library - log file will be created for each file where was included and used libdll.h with LIBDLL_DEBUG_INFO enabled.
+
 ## Example
 Simplest example with a few comments
 ```c
+#define LIBDLL_DEBUG_INFO // INCLUDE BEFORE "libdll.h" !!
+
 #include "libdll.h"
 
 char    *str = "just a str";
@@ -28,6 +34,11 @@ void    print_list_number_data(void *restrict obj_data) {
 }
 
 int     main(void) {
+    /**
+     * REQUIRED(!!!) before first call of any dll_* method in each file for creation of log-file, otherwise nothing will works.
+     */
+    dll_init_logger;
+
     dll_t   *list = dll_init();
 
     dll_emplace_back(list, str, str_len, LIBDLL_FN_FREE_NULL);
