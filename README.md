@@ -9,12 +9,12 @@ If you need all of this, check [this](https://github.com/Iipal/libdll/tree/empty
 
 ## DEBUG INFO BRANCH
 This is branch with debug logger added to cpp11-std-min branch. Follow the updated example bellow to test it.
-Be ceraful, because it's header-only library - log file will be created for each file where was included and used libdll.h with LIBDLL_DEBUG_INFO enabled.
+Be ceraful, because it's header-only library - log file will be created for each file where was included and used libdll.h with LIBDLL_LOGGER enabled.
 
 ## Example
 Simplest example with a few comments
 ```c
-#define LIBDLL_DEBUG_INFO // INCLUDE BEFORE "libdll.h" !!
+#define LIBDLL_LOGGER // INCLUDE BEFORE "libdll.h" !!
 
 #include "libdll.h"
 
@@ -41,9 +41,11 @@ int     main(void) {
 
     dll_t   *list = dll_init();
 
-    dll_emplace_back(list, str, str_len, LIBDLL_FN_FREE_NULL);
-    // equals to:
-    // dll_push_back(list, dll_new_obj(str, str_len, LIBDLL_FN_FREE_NULL));
+    /**
+     * equals to:
+     * dll_push_back(list, dll_new_obj(str, str_len, LIBDLL_DESTRUCTOR_NULL));
+     */
+    dll_emplace_back(list, str, str_len, LIBDLL_DESTRUCTOR_NULL);
 
     dll_foreach(list, print_list_str_data);
 
@@ -51,13 +53,13 @@ int     main(void) {
     dll_clear(list);
 
     /*
-     * Also by passing any data in to list it's will not be duplicated.
+     * Also by passing any data in the list object it's will not be duplicated.
      * If you need this behavior - made it by yourself,
      * by following this steps for all the data before it will be passed to the list:
-     *  1. allocating memory and copying to it any data.
-     *  2. passing it to dll_emplace\dll_push with specifying an fn_free function(
-     *      or use a LIBDLL_FN_FREE_CLEARANCE if you need just free(3) apply to allocated data
-     *     ).
+     *  1. allocate memory and copy to it any data.
+     *  2. pass it to dll_emplace\dll_push with specifying a desctructor function(
+     *      or use a LIBDLL_DESTRUCTOR_DEFAULT if you need to apply just
+     *      a free(3) to allocated data).
      */
     size_t          i;
     const size_t    iterator_size = sizeof(i);
@@ -66,7 +68,7 @@ int     main(void) {
         size_t  *iterator_mem_chunk = calloc(1, iterator_size);
         memcpy(iterator_mem_chunk, &i, iterator_size);
 
-        dll_emplace_back(list, iterator_mem_chunk, iterator_size, LIBDLL_FN_FREE_CLEARANCE);
+        dll_emplace_back(list, iterator_mem_chunk, iterator_size, LIBDLL_DESTRUCTOR_DEFAULT);
     }
 
     dll_foreach(list, print_list_number_data);

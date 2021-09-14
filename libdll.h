@@ -49,16 +49,16 @@
 #endif /* LIBDLL_UNSAFE_USAGE */
 
 /**
- * \brief Use this macros as \c fn_free argument for \c dll_new_obj if you don't allocate
- * anything inside a \c data, but the \c data itself was allocated.
+ * \brief Use this macros as \c destructor argument for \c dll_new_obj if you don't
+ * allocate anything inside a \c data, but the \c data itself was allocated.
  */
-#define LIBDLL_FN_FREE_CLEARANCE ((dll_callback_fn_t)-0x1UL)
+#define LIBDLL_DESTRUCTOR_DEFAULT ((dll_callback_fn_t)-0x1UL)
 
 /**
- * \brief Use this macros as \c fn_free argument for \c dll_new_obj if you don't need to
- * free any memory in lists.
+ * \brief Use this macros as \c destructor argument for \c dll_new_obj if you don't need
+ * to free any memory in lists.
  */
-#define LIBDLL_FN_FREE_NULL ((dll_callback_fn_t)NULL)
+#define LIBDLL_DESTRUCTOR_NULL ((dll_callback_fn_t)NULL)
 
 /**
  * ----------------------------
@@ -91,23 +91,23 @@ typedef void (*dll_callback_fn_t)(void * restrict obj_data);
  * \param next a pointer to next list-object.
  * \param prev a pointer to previous list-object.
  * \param data an any user defined data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated. \param
- * data_size a \c data size.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated. \param
+ * size a \c data size.
  */
 typedef struct s_dll_obj {
   struct s_dll_obj * restrict next; /** a pointer to next list-object. */
   struct s_dll_obj * restrict prev; /** a pointer to previous list-object. */
   void * restrict data;             /** an any user defined data. */
   dll_callback_fn_t
-      fn_free; /** callback-function to manually free anything inside \c data on deleting
-                  the list-object. Notice: \c data itself will be freed automatically with
-                  \c free if a \c fn_free function was specified. Use \c
-                  LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c
-                  data, but the \c data itself was allocated.*/
-  size_t data_size; /** a \c data size. */
+      destructor; /** callback-function to manually free anything inside \c data on
+                  deleting the list-object. Notice: \c data itself will be freed
+                  automatically with \c free if a \c destructor function was specified.
+                  Use \c LIBDLL_DESTRUCTOR_DEFAULT if you don't allocate anything inside a
+                  \c data, but the \c data itself was allocated.*/
+  size_t size;    /** a \c data size. */
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_obj_t;
 
 /**
@@ -138,19 +138,19 @@ static inline dll_t * dll_init(void);
 
 /**
  * \brief Creating a new list-object from given parameters.
- * Strongly recomended to setup \c fn_free if you allocate memory inside \c data.
+ * Strongly recomended to setup \c destructor if you allocate memory inside \c data.
  *
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated.
  *
  * \return a new created object.
  */
 static inline dll_obj_t *
-    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t fn_free);
+    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t destructor);
 
 /**
  * \brief Push a \c list-object to front of given \c list.
@@ -179,17 +179,17 @@ static inline dll_obj_t * dll_push_back(dll_t * restrict dll, dll_obj_t * restri
  * \param dll destination list.
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated.
  *
  * \return a new created list-object.
  */
 static inline dll_obj_t * dll_emplace_front(dll_t * restrict dll,
                                             void * restrict data,
                                             size_t            size,
-                                            dll_callback_fn_t fn_free);
+                                            dll_callback_fn_t destructor);
 
 /**
  * \brief Creating a new list-object via \c dll_new_obj and pushing it in end of list \c
@@ -198,17 +198,17 @@ static inline dll_obj_t * dll_emplace_front(dll_t * restrict dll,
  * \param dll destination list.
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated.
  *
  * \return a new created list-object.
  */
 static inline dll_obj_t * dll_emplace_back(dll_t * restrict dll,
                                            void * restrict data,
                                            size_t            size,
-                                           dll_callback_fn_t fn_free);
+                                           dll_callback_fn_t destructor);
 
 /**
  * \brief Removes the first list-object of the list.
@@ -227,8 +227,8 @@ static inline void dll_pop_back(dll_t * restrict dll);
 /**
  * \brief Erases all elements from the \c dll list. After this call, \c dll_size returns
  * zero. Any pointers referring to contained elements can be invalid if you specified a \c
- * fn_free callback-function for each individual list-object. Also lost memory leaks
- * errors can occur as well if you don't specified a \c fn_free function for each
+ * destructor callback-function for each individual list-object. Also lost memory leaks
+ * errors can occur as well if you don't specified a \c destructor function for each
  * individual list-object but memory inside of this list-object was allocated.
  *
  * \param dll list to be cleared.
@@ -255,18 +255,19 @@ static inline dll_obj_t *
  * \param dll list in which list-object will be inserted.
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated. \param pos
- * position in list on which list-object will be inserted(starts from 0 to \c dll_size).
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated. \param
+ * pos position in list on which list-object will be inserted(starts from 0 to \c
+ * dll_size).
  *
  * \return inserted list-object or NULL if something is wrong.
  */
 static inline dll_obj_t * dll_emplace(dll_t * restrict dll,
                                       void * restrict data,
                                       size_t            size,
-                                      dll_callback_fn_t fn_free,
+                                      dll_callback_fn_t destructor,
                                       size_t            pos);
 
 /**
@@ -492,20 +493,20 @@ static inline void dll_free(dll_t * restrict * restrict dll);
  */
 
 static inline dll_t * dll_init(void) {
-  DLLDBG_LOG_VOID;
+  LIBDLL_LOG_ENTRY_VOID;
 
   dll_t * restrict out = calloc(1, sizeof(*out));
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_FMT(out), DLLDBG_LOG_DLL_ARG(out));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_FMT(out), LIBDLL_LOG_DLL_ARG(out));
   return out;
 }
 
 static inline dll_obj_t *
-    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t fn_free) {
-  DLLDBG_LOG("data: %p, size: %zu, " DLLDBG_LOG_DLL_FN_FREE_FMT(fn_free),
-             data,
-             size,
-             DLLDBG_LOG_DLL_FN_FREE_ARG(fn_free));
+    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t destructor) {
+  LIBDLL_LOG_ENTRY("data: %p, size: %zu, " LIBDLL_LOG_DLL_DESTRUCTOR_FMT(destructor),
+                   data,
+                   size,
+                   LIBDLL_LOG_DLL_DESTRUCTOR_ARG(destructor));
 
   dll_obj_t * restrict out = calloc(1, sizeof(*out));
 
@@ -513,26 +514,26 @@ static inline dll_obj_t *
   if (__dll_likely(NULL != out)) {
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-    out->data      = data;
-    out->data_size = size;
-    out->fn_free   = fn_free;
+    out->data       = data;
+    out->size       = size;
+    out->destructor = destructor;
 
 #ifndef LIBDLL_UNSAFE_USAGE
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(out), LIBDLL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline dll_obj_t * dll_push_front(dll_t * restrict dll, dll_obj_t * restrict obj) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", " DLLDBG_LOG_DLL_OBJ_FMT(obj),
-             DLLDBG_LOG_DLL_ARG(dll),
-             DLLDBG_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", " LIBDLL_LOG_DLL_OBJ_FMT(obj),
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   LIBDLL_LOG_DLL_OBJ_ARG(obj));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -549,18 +550,18 @@ static inline dll_obj_t * dll_push_front(dll_t * restrict dll, dll_obj_t * restr
     dll->head       = obj;
   }
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(obj), DLLDBG_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(obj), LIBDLL_LOG_DLL_OBJ_ARG(obj));
   return obj;
 }
 
 static inline dll_obj_t * dll_push_back(dll_t * restrict dll, dll_obj_t * restrict obj) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", " DLLDBG_LOG_DLL_OBJ_FMT(obj),
-             DLLDBG_LOG_DLL_ARG(dll),
-             DLLDBG_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", " LIBDLL_LOG_DLL_OBJ_FMT(obj),
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   LIBDLL_LOG_DLL_OBJ_ARG(obj));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -577,138 +578,140 @@ static inline dll_obj_t * dll_push_back(dll_t * restrict dll, dll_obj_t * restri
     dll->tail       = obj;
   }
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(obj), DLLDBG_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(obj), LIBDLL_LOG_DLL_OBJ_ARG(obj));
   return obj;
 }
 
 static inline dll_obj_t * dll_emplace_front(dll_t * restrict dll,
                                             void * restrict data,
                                             size_t            size,
-                                            dll_callback_fn_t fn_free) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", data: %p, size: %zu, " DLLDBG_LOG_DLL_FN_FREE_FMT(
-                 fn_free),
-             DLLDBG_LOG_DLL_ARG(dll),
-             data,
-             size,
-             DLLDBG_LOG_DLL_FN_FREE_ARG(fn_free));
-  DLLDBG_LOG_OUT_DEPTH_INC;
+                                            dll_callback_fn_t destructor) {
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll) ", data: %p, size: %zu, " LIBDLL_LOG_DLL_DESTRUCTOR_FMT(
+          destructor),
+      LIBDLL_LOG_DLL_ARG(dll),
+      data,
+      size,
+      LIBDLL_LOG_DLL_DESTRUCTOR_ARG(destructor));
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
-  dll_obj_t * restrict new_obj = dll_new_obj(data, size, fn_free);
+  dll_obj_t * restrict new_obj = dll_new_obj(data, size, destructor);
   dll_obj_t * restrict out     = dll_push_front(dll, new_obj);
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(out), LIBDLL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline dll_obj_t * dll_emplace_back(dll_t * restrict dll,
                                            void * restrict data,
                                            size_t            size,
-                                           dll_callback_fn_t fn_free) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", data: %p, size: %zu, " DLLDBG_LOG_DLL_FN_FREE_FMT(
-                 fn_free),
-             DLLDBG_LOG_DLL_ARG(dll),
-             data,
-             size,
-             DLLDBG_LOG_DLL_FN_FREE_ARG(fn_free));
-  DLLDBG_LOG_OUT_DEPTH_INC;
+                                           dll_callback_fn_t destructor) {
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll) ", data: %p, size: %zu, " LIBDLL_LOG_DLL_DESTRUCTOR_FMT(
+          destructor),
+      LIBDLL_LOG_DLL_ARG(dll),
+      data,
+      size,
+      LIBDLL_LOG_DLL_DESTRUCTOR_ARG(destructor));
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
-  dll_obj_t * restrict new_obj = dll_new_obj(data, size, fn_free);
+  dll_obj_t * restrict new_obj = dll_new_obj(data, size, destructor);
   dll_obj_t * restrict out     = dll_push_back(dll, new_obj);
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(out), LIBDLL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline void dll_pop_front(dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == dll->head)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict save = dll->head->next;
 
   dll_del(dll, dll->head);
   dll->head = save;
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline void dll_pop_back(dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == dll->tail)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_VOID;
 
   dll_obj_t * restrict save = dll->tail->prev;
 
   dll_del(dll, dll->tail);
   dll->tail = save;
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline void dll_clear(dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   while (dll->objs_count) {
     dll_pop_front(dll);
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline dll_obj_t *
     dll_insert(dll_t * restrict dll, dll_obj_t * restrict obj, size_t pos) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", " DLLDBG_LOG_DLL_OBJ_FMT(obj) ", pos: %zu",
-             DLLDBG_LOG_DLL_ARG(dll),
-             DLLDBG_LOG_DLL_OBJ_ARG(obj),
-             pos);
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", " LIBDLL_LOG_DLL_OBJ_FMT(obj) ", pos: %zu",
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   LIBDLL_LOG_DLL_OBJ_ARG(obj),
+                   pos);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (dll->objs_count < pos) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict out = NULL;
 
   if (NULL == dll->head || 0 == pos) {
-    out = dll_emplace_front(dll, obj->data, obj->data_size, obj->fn_free);
+    out = dll_emplace_front(dll, obj->data, obj->size, obj->destructor);
   } else {
     dll_obj_t * restrict iter = dll->head;
 
@@ -728,35 +731,38 @@ static inline dll_obj_t *
     out = obj;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(out), LIBDLL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline dll_obj_t * dll_emplace(dll_t * restrict dll,
                                       void * restrict data,
                                       size_t            size,
-                                      dll_callback_fn_t fn_free,
+                                      dll_callback_fn_t destructor,
                                       size_t            pos) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", data: %p, size: %zu, " DLLDBG_LOG_DLL_FN_FREE_FMT(
-                 fn_free) ", pos: %zu",
-             DLLDBG_LOG_DLL_ARG(dll),
-             data,
-             size,
-             DLLDBG_LOG_DLL_FN_FREE_ARG(fn_free),
-             pos);
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll) ", data: %p, size: %zu, " LIBDLL_LOG_DLL_DESTRUCTOR_FMT(
+          destructor) ", pos: %zu",
+      LIBDLL_LOG_DLL_ARG(dll),
+      data,
+      size,
+      LIBDLL_LOG_DLL_DESTRUCTOR_ARG(destructor),
+      pos);
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
-  dll_obj_t * restrict new_obj = dll_new_obj(data, size, fn_free);
+  dll_obj_t * restrict new_obj = dll_new_obj(data, size, destructor);
   dll_obj_t * out              = dll_insert(dll, new_obj, pos);
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(out), LIBDLL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline dll_obj_t * __dlli_get_obj_at_index(dll_t * restrict dll, size_t pos) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", pos: %zu", DLLDBG_LOG_DLL_ARG(dll), pos);
+  LIBDLL_INTERNAL_LOG_ENTRY(LIBDLL_INTERNAL_LOG_DLL_FMT(dll) ", pos: %zu",
+                            LIBDLL_INTERNAL_LOG_DLL_ARG(dll),
+                            pos);
 
   const size_t dll_size    = dll->objs_count;
   dll_obj_t * restrict out = NULL;
@@ -773,29 +779,30 @@ static inline dll_obj_t * __dlli_get_obj_at_index(dll_t * restrict dll, size_t p
     }
   }
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_INTERNAL_LOG_OUT(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(out),
+                          LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline dll_obj_t * dll_erase(dll_t * restrict dll, size_t pos_start, size_t end) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", pos_start: %zu, end: %zu",
-             DLLDBG_LOG_DLL_ARG(dll),
-             pos_start,
-             end);
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", pos_start: %zu, end: %zu",
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   pos_start,
+                   end);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (0 == dll->objs_count || dll->objs_count < pos_start || (end && pos_start > end)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict erasing = __dlli_get_obj_at_index(dll, pos_start);
   dll_obj_t * restrict save    = NULL;
@@ -809,30 +816,36 @@ static inline dll_obj_t * dll_erase(dll_t * restrict dll, size_t pos_start, size
 
   dll_obj_t * out = erasing ? erasing : dll->tail;
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(out), LIBDLL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline void dll_foreach(const dll_t * restrict dll, dll_callback_fn_t fn) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", fn: %p", DLLDBG_LOG_DLL_ARG(dll), fn);
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", fn: %p", LIBDLL_LOG_DLL_ARG(dll), fn);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
+
   for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
+    LIBDLL_INTERNAL_LOG("callee: %p, " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj),
+                        fn,
+                        LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj));
     fn(iobj->data);
   }
 
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline dll_obj_t * dll_front(const dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
   dll_obj_t * head = NULL;
 
@@ -846,12 +859,12 @@ static inline dll_obj_t * dll_front(const dll_t * restrict dll) {
   head  = dll->head;
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(head), DLLDBG_LOG_DLL_OBJ_ARG(head));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(head), LIBDLL_LOG_DLL_OBJ_ARG(head));
   return head;
 }
 
 static inline dll_obj_t * dll_back(const dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
   dll_obj_t * tail = NULL;
 
@@ -865,12 +878,12 @@ static inline dll_obj_t * dll_back(const dll_t * restrict dll) {
   tail  = dll->tail;
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(tail), DLLDBG_LOG_DLL_OBJ_ARG(tail));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(tail), LIBDLL_LOG_DLL_OBJ_ARG(tail));
   return tail;
 }
 
 static inline bool dll_empty(const dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
   bool empty = true;
 
@@ -880,12 +893,12 @@ static inline bool dll_empty(const dll_t * restrict dll) {
   empty = !!dll->objs_count;
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT("%s", empty ? "true" : "false");
+  LIBDLL_LOG_OUT("%s", empty ? "true" : "false");
   return empty;
 }
 
 static inline size_t dll_size(const dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
   size_t count = 0;
 
@@ -899,31 +912,31 @@ static inline size_t dll_size(const dll_t * restrict dll) {
   count = dll->objs_count;
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT("%zu", count);
+  LIBDLL_LOG_OUT("%zu", count);
   return count;
 }
 
 static inline void
     dll_merge(dll_t * restrict dst, dll_t * restrict src, dll_callback_cmp_fn_t fn_sort) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dst) ", " DLLDBG_LOG_DLL_FMT(src) ", fn_sort: %p",
-             DLLDBG_LOG_DLL_ARG(dst),
-             DLLDBG_LOG_DLL_ARG(src),
-             fn_sort);
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dst) ", " LIBDLL_LOG_DLL_FMT(src) ", fn_sort: %p",
+                   LIBDLL_LOG_DLL_ARG(dst),
+                   LIBDLL_LOG_DLL_ARG(src),
+                   fn_sort);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dst || NULL == src)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict iobj = src->head;
   dll_obj_t * restrict save = NULL;
 
   while (iobj) {
-    dll_emplace_back(dst, iobj->data, iobj->data_size, iobj->fn_free);
+    dll_emplace_back(dst, iobj->data, iobj->size, iobj->destructor);
     save = iobj->next;
     dll_del(src, iobj);
     iobj = save;
@@ -933,8 +946,8 @@ static inline void
     dll_sort(dst, fn_sort);
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline void dll_splice(dll_t * restrict dst,
@@ -942,35 +955,35 @@ static inline void dll_splice(dll_t * restrict dst,
                               size_t dst_pos,
                               size_t src_start,
                               size_t src_end) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dst) ", " DLLDBG_LOG_DLL_FMT(
-                 src) ", dst_pos: %zu, src_start: %zu, src_end: %zu",
-             DLLDBG_LOG_DLL_ARG(dst),
-             DLLDBG_LOG_DLL_ARG(src),
-             dst_pos,
-             src_start,
-             src_end);
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dst) ", " LIBDLL_LOG_DLL_FMT(
+                       src) ", dst_pos: %zu, src_start: %zu, src_end: %zu",
+                   LIBDLL_LOG_DLL_ARG(dst),
+                   LIBDLL_LOG_DLL_ARG(src),
+                   dst_pos,
+                   src_start,
+                   src_end);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dst || NULL == src)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if ((src_end && src_start > src_end) || 0 == src->objs_count) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   if ((0 == dst_pos && 0 == src_start && 0 == src_end) ||
       ((dst_pos >= dst->objs_count) && (src_start >= src->objs_count) &&
        (0 == src_end))) {
     dll_merge(dst, src, NULL);
 
-    DLLDBG_LOG_OUT_DEPTH_DEC;
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_DEPTH_DEC;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 
@@ -1027,26 +1040,26 @@ static inline void dll_splice(dll_t * restrict dst,
     }
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline size_t dll_remove(dll_t * restrict dll,
                                 void * restrict value,
                                 dll_callback_cmp_fn_t fn_cmp) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", value: %p, fn_cmp: %p",
-             DLLDBG_LOG_DLL_ARG(dll),
-             value,
-             fn_cmp);
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", value: %p, fn_cmp: %p",
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   value,
+                   fn_cmp);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return 0;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict iobj = dll->head;
   dll_obj_t * restrict save = NULL;
@@ -1061,15 +1074,16 @@ static inline size_t dll_remove(dll_t * restrict dll,
     iobj = save;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT("%zu", removed_objs);
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT("%zu", removed_objs);
   return removed_objs;
 }
 
 static inline void __dlli_memcpy(dll_obj_t * restrict dst, dll_obj_t * restrict src) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_OBJ_FMT(dst) ", " DLLDBG_LOG_DLL_OBJ_FMT(src),
-             DLLDBG_LOG_DLL_OBJ_ARG(dst),
-             DLLDBG_LOG_DLL_OBJ_ARG(src));
+  LIBDLL_INTERNAL_LOG_ENTRY(
+      LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(dst) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(src),
+      LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(dst),
+      LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(src));
 
   __u_char * restrict dst_ptr = (__u_char * restrict)dst;
   __u_char * restrict src_ptr = (__u_char * restrict)src;
@@ -1078,20 +1092,20 @@ static inline void __dlli_memcpy(dll_obj_t * restrict dst, dll_obj_t * restrict 
 
   memcpy(dst_ptr + offsetnp, src_ptr + offsetnp, sizecopy);
 
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_INTERNAL_LOG_OUT_VOID;
 }
 
 static inline void dll_reverse(dll_t * restrict dll) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll), DLLDBG_LOG_DLL_ARG(dll));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll), LIBDLL_LOG_DLL_ARG(dll));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(!dll)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   for (dll_obj_t * restrict ifirst = dll->head, * restrict ilast = dll->tail;
        ifirst && ilast && ifirst != ilast;
@@ -1101,21 +1115,22 @@ static inline void dll_reverse(dll_t * restrict dll) {
     __dlli_memcpy(ilast, &temp);
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline size_t dll_unique(dll_t * restrict dll, dll_callback_cmp_fn_t fn_cmp) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", fn_cmp: %p", DLLDBG_LOG_DLL_ARG(dll), fn_cmp);
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll) ", fn_cmp: %p", LIBDLL_LOG_DLL_ARG(dll), fn_cmp);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
-    DLLDBG_LOG_OUT("%zu", 0);
+    LIBDLL_LOG_OUT("%zu", 0);
     return 0;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict jobj = NULL;
   dll_obj_t * restrict save = NULL;
@@ -1133,30 +1148,38 @@ static inline size_t dll_unique(dll_t * restrict dll, dll_callback_cmp_fn_t fn_c
     }
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
   return removed_objs;
 }
 
 static inline dll_obj_t * __dlli_msort(dll_obj_t * restrict first,
                                        dll_obj_t * restrict second,
                                        dll_callback_cmp_fn_t fn_sort) {
-  DLLDBG_LOG(
-      DLLDBG_LOG_DLL_OBJ_FMT(first) ", " DLLDBG_LOG_DLL_OBJ_FMT(second) ", fn_sort: %p",
-      DLLDBG_LOG_DLL_OBJ_ARG(first),
-      DLLDBG_LOG_DLL_OBJ_ARG(second),
+  LIBDLL_INTERNAL_LOG_ENTRY(
+      LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(first) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(
+          second) ", fn_sort: %p",
+      LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(first),
+      LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(second),
       fn_sort);
 
   if (NULL == first) {
-    DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(second), DLLDBG_LOG_DLL_OBJ_ARG(second));
+    LIBDLL_INTERNAL_LOG_OUT(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(second),
+                            LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(second));
     return second;
   }
   if (NULL == second) {
-    DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(first), DLLDBG_LOG_DLL_OBJ_ARG(first));
+    LIBDLL_INTERNAL_LOG_OUT(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(first),
+                            LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(first));
     return first;
   }
 
   dll_obj_t * out = NULL;
 
+  LIBDLL_INTERNAL_LOG("callee: %p, " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
+                          first) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(second),
+                      fn_sort,
+                      LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(first),
+                      LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(second));
   if (0 > fn_sort(first->data, second->data)) {
     first->next       = __dlli_msort(first->next, second, fn_sort);
     first->next->prev = first;
@@ -1169,22 +1192,24 @@ static inline dll_obj_t * __dlli_msort(dll_obj_t * restrict first,
     out                = second;
   }
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(out), DLLDBG_LOG_DLL_OBJ_ARG(out));
+  LIBDLL_INTERNAL_LOG_OUT(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(out),
+                          LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(out));
   return out;
 }
 
 static inline dll_obj_t * __dlli_msort_parts(dll_obj_t * restrict head,
                                              dll_callback_cmp_fn_t fn_sort) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_OBJ_FMT(head) ", fn_sort: %p",
-             DLLDBG_LOG_DLL_OBJ_ARG(head),
-             fn_sort);
+  LIBDLL_INTERNAL_LOG_ENTRY(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(head) ", fn_sort: %p",
+                            LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(head),
+                            fn_sort);
 
   if (NULL == head || NULL == head->next) {
-    DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(head), DLLDBG_LOG_DLL_OBJ_ARG(head));
+    LIBDLL_INTERNAL_LOG_OUT(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(head),
+                            LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(head));
     return head;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict ifast = head;
   dll_obj_t * restrict islow = head;
@@ -1202,28 +1227,29 @@ static inline dll_obj_t * __dlli_msort_parts(dll_obj_t * restrict head,
 
   dll_obj_t * __msort_out = __dlli_msort(head, half, fn_sort);
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(__msort_out),
-                 DLLDBG_LOG_DLL_OBJ_ARG(__msort_out));
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_INTERNAL_LOG_OUT(LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(__msort_out),
+                          LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(__msort_out));
   return __msort_out;
 }
 
 static inline void dll_sort(dll_t * restrict dll, dll_callback_cmp_fn_t fn_sort) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", fn_sort: %p", DLLDBG_LOG_DLL_ARG(dll), fn_sort);
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll) ", fn_sort: %p", LIBDLL_LOG_DLL_ARG(dll), fn_sort);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_sort)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (NULL == dll->head || NULL == dll->head->next) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
 
   dll->head = __dlli_msort_parts(dll->head, fn_sort);
 
@@ -1233,27 +1259,28 @@ static inline void dll_sort(dll_t * restrict dll, dll_callback_cmp_fn_t fn_sort)
     dll->tail = iobj;
   }
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline bool dll_is_equal(const dll_t * restrict dll_a,
                                 const dll_t * restrict dll_b,
                                 dll_callback_cmp_fn_t fn_cmp) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll_a) ", " DLLDBG_LOG_DLL_FMT(dll_b) ", fn_cmp: %p",
-             DLLDBG_LOG_DLL_ARG(dll_a),
-             DLLDBG_LOG_DLL_ARG(dll_b),
-             fn_cmp);
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll_a) ", " LIBDLL_LOG_DLL_FMT(dll_b) ", fn_cmp: %p",
+      LIBDLL_LOG_DLL_ARG(dll_a),
+      LIBDLL_LOG_DLL_ARG(dll_b),
+      fn_cmp);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll_a || NULL == dll_b)) {
-    DLLDBG_LOG_OUT("%s", "false");
+    LIBDLL_LOG_OUT("%s", "false");
     return false;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (dll_a->objs_count != dll_b->objs_count) {
-    DLLDBG_LOG_OUT("%s", "false");
+    LIBDLL_LOG_OUT("%s", "false");
     return false;
   }
 
@@ -1263,12 +1290,12 @@ static inline bool dll_is_equal(const dll_t * restrict dll_a,
   for (; iobj_a && iobj_b; iobj_a = iobj_a->next, iobj_b = iobj_b->next) {
     if (fn_cmp) {
       if (0 != fn_cmp(iobj_a->data, iobj_b->data)) {
-        DLLDBG_LOG_OUT("%s", "false");
+        LIBDLL_LOG_OUT("%s", "false");
         return false;
       }
     } else {
-      if (iobj_a->data_size != iobj_b->data_size || iobj_a->data != iobj_b->data) {
-        DLLDBG_LOG_OUT("%s", "false");
+      if (iobj_a->size != iobj_b->size || iobj_a->data != iobj_b->data) {
+        LIBDLL_LOG_OUT("%s", "false");
         return false;
       }
     }
@@ -1276,48 +1303,49 @@ static inline bool dll_is_equal(const dll_t * restrict dll_a,
 
   bool out = !(iobj_a || iobj_b);
 
-  DLLDBG_LOG_OUT("%s", out ? "true" : "false");
+  LIBDLL_LOG_OUT("%s", out ? "true" : "false");
   return out;
 }
 
 static inline bool dll_is_not_equal(const dll_t * restrict dll_a,
                                     const dll_t * restrict dll_b,
                                     dll_callback_cmp_fn_t fn_cmp) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll_a) ", " DLLDBG_LOG_DLL_FMT(dll_b) ", fn_cmp: %p",
-             DLLDBG_LOG_DLL_ARG(dll_a),
-             DLLDBG_LOG_DLL_ARG(dll_b),
-             fn_cmp);
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_ENTRY(
+      LIBDLL_LOG_DLL_FMT(dll_a) ", " LIBDLL_LOG_DLL_FMT(dll_b) ", fn_cmp: %p",
+      LIBDLL_LOG_DLL_ARG(dll_a),
+      LIBDLL_LOG_DLL_ARG(dll_b),
+      fn_cmp);
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   const bool is_not_equals = !dll_is_equal(dll_a, dll_b, fn_cmp);
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT("%s", is_not_equals ? "true" : "false");
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT("%s", is_not_equals ? "true" : "false");
   return is_not_equals;
 }
 
 static inline void dll_del(dll_t * restrict dll, dll_obj_t * restrict obj) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", " DLLDBG_LOG_DLL_OBJ_FMT(obj),
-             DLLDBG_LOG_DLL_ARG(dll),
-             DLLDBG_LOG_DLL_OBJ_ARG(obj));
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", " LIBDLL_LOG_DLL_OBJ_FMT(obj),
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   LIBDLL_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict del_obj = dll_unlink(dll, obj);
 
   dll_free_obj(&del_obj);
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline dll_obj_t * dll_unlink(dll_t * restrict dll, dll_obj_t * restrict obj) {
-  DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(dll) ", " DLLDBG_LOG_DLL_OBJ_FMT(obj),
-             DLLDBG_LOG_DLL_ARG(dll),
-             DLLDBG_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", " LIBDLL_LOG_DLL_OBJ_FMT(obj),
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   LIBDLL_LOG_DLL_OBJ_ARG(obj));
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    DLLDBG_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL;
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -1334,28 +1362,28 @@ static inline dll_obj_t * dll_unlink(dll_t * restrict dll, dll_obj_t * restrict 
     dll->tail = obj->prev;
   }
 
-  DLLDBG_LOG_OUT(DLLDBG_LOG_DLL_OBJ_FMT(obj), DLLDBG_LOG_DLL_OBJ_ARG(obj));
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_FMT(obj), LIBDLL_LOG_DLL_OBJ_ARG(obj));
   return obj;
 }
 
 static inline void dll_free_obj(dll_obj_t * restrict * restrict obj) {
   {
     const dll_obj_t * restrict __obj = *obj;
-    DLLDBG_LOG(DLLDBG_LOG_DLL_OBJ_FMT(__obj), DLLDBG_LOG_DLL_OBJ_ARG(__obj));
+    LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_OBJ_FMT(__obj), LIBDLL_LOG_DLL_OBJ_ARG(__obj));
   }
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == obj || NULL == obj || NULL == *obj)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  if ((*obj)->fn_free) {
-    if (LIBDLL_FN_FREE_CLEARANCE != (*obj)->fn_free) {
-      (*obj)->fn_free((*obj)->data);
+  if ((*obj)->destructor) {
+    if (LIBDLL_DESTRUCTOR_DEFAULT != (*obj)->destructor) {
+      (*obj)->destructor((*obj)->data);
     }
-    if (LIBDLL_FN_FREE_NULL != (*obj)->data) {
+    if (LIBDLL_DESTRUCTOR_NULL != (*obj)->data) {
       free((*obj)->data);
     }
   }
@@ -1364,23 +1392,23 @@ static inline void dll_free_obj(dll_obj_t * restrict * restrict obj) {
   free(*obj);
   *obj = NULL;
 
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 static inline void dll_free(dll_t * restrict * restrict dll) {
   {
     const dll_t * restrict __dll = *dll;
-    DLLDBG_LOG(DLLDBG_LOG_DLL_FMT(__dll), DLLDBG_LOG_DLL_ARG(__dll));
+    LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(__dll), LIBDLL_LOG_DLL_ARG(__dll));
   }
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == *dll)) {
-    DLLDBG_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID;
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  DLLDBG_LOG_OUT_DEPTH_INC;
+  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict iobj = (*dll)->head;
   dll_obj_t * restrict save = NULL;
@@ -1394,8 +1422,8 @@ static inline void dll_free(dll_t * restrict * restrict dll) {
   free(*dll);
   *dll = NULL;
 
-  DLLDBG_LOG_OUT_DEPTH_DEC;
-  DLLDBG_LOG_OUT_VOID;
+  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_LOG_OUT_VOID;
 }
 
 #endif /* LIBDLL_H */

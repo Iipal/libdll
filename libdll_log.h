@@ -18,9 +18,18 @@
 #ifndef LIBDLL_LOG_H
 #define LIBDLL_LOG_H
 
-#ifdef LIBDLL_DEBUG_INFO
-#  undef LIBDLL_DEBUG_INFO
-#  define LIBDLL_DEBUG_INFO 1
+#ifdef LIBDLL_LOGGER
+#  undef LIBDLL_LOGGER
+#  define LIBDLL_LOGGER 1
+
+/**
+ * Use this macro with LIBDLL_LOGGER definition to see more deep log,
+ * such as from internal functions in dll_sort().
+ */
+#  ifdef LIBDLL_LOGGER_INTERNAL
+#    undef LIBDLL_LOGGER_INTERNAL
+#    define LIBDLL_LOGGER_INTERNAL 1
+#  endif
 
 #  include <assert.h>
 #  include <stdarg.h>
@@ -29,55 +38,56 @@
 #  include <sys/types.h>
 #  include <time.h>
 
-#  if !defined(LIBDLL_FN_FREE_CLEARANCE) && !defined(LIBDLL_FN_FREE_NULL)
+#  if !defined(LIBDLL_DESTRUCTOR_DEFAULT) && !defined(LIBDLL_DESTRUCTOR_NULL)
 #    include "libdll.h"
-#  endif /* !defined(LIBDLL_FN_FREE_CLEARANCE) && !defined(LIBDLL_FN_FREE_NULL) */
+#  endif /* !defined(LIBDLL_DESTRUCTOR_DEFAULT) && !defined(LIBDLL_DESTRUCTOR_NULL)) */
 
 /**
  * ---------------------------------------
  * Function prototypes & global variables
  * ---------------------------------------
  */
-static char * _dlldbg_parent_filename = NULL;
-static char * dlldbg_parent_filename_get(void);
-static void   dlldbg_parent_filename_set(const char * filename);
+static char * _dll_log_src_filename = NULL;
+static char * dll_log_src_filename_get(void);
+static void   dll_log_src_filename_set(const char * filename);
 
-static FILE * _dlldbg_logfile = NULL;
-static void   dlldbg_logfile_open();
+static FILE * _dll_log_file = NULL;
+static void   dll_log_file_open();
 
-static void dlldbg_vfprintf(const char * fmt, va_list arg);
-static void dlldbg_fprintf(const char * fmt, ...);
-static void dlldbg_fputs(const char * str);
+static void dll_log_vfprintf(const char * fmt, va_list arg);
+static void dll_log_fprintf(const char * fmt, ...);
+static void dll_log_fputs(const char * str);
 
-static char * dlldbg_log_get_method_depth_fmt(void);
-static char * dlldbg_log_get_method_depth_arg(void);
+static void dll_log(const char * func, const char * fmt, ...);
 
-static void dlldbg_log_method_prefix(void);
-static void
-    dlldbg_log_method_entry(const char * file, const char * func, const char * fmt, ...);
-static void
-    dlldbg_log_method_out(const char * file, const char * func, const char * fmt, ...);
+static void dll_log_method_prefix(void);
+static void dll_log_method_entry(const char * func, const char * fmt, ...);
+static void dll_log_method_out(const char * func, const char * fmt, ...);
 
-static void dlldbg_depth_display_last_delimiter(void);
+static void dll_log_depth_display_last_delimiter(void);
 
-static size_t _dlldbg_nested_depth = 0;
-static void   dlldbg_depth_inc(void);
-static void   dlldbg_depth_dec(void);
-static void   dlldbg_depth_set(size_t depth);
-static void   dlldbg_depth_reset(void);
+static size_t _dll_log_depth = 0;
+static void   dll_log_depth_inc(void);
+static void   dll_log_depth_dec(void);
+static void   dll_log_depth_set(size_t depth);
+static size_t dll_log_depth_get(void);
+static void   dll_log_depth_reset(void);
 
-static const char _dlldbg_nested_depth_display_prefix[]  = "⎸";
-static const char _dlldbg_nested_depth_display[]         = "⎯⎯";
-static const char _dlldbg_nested_depth_display_postfix[] = "▶";
+static char * dll_log_get_method_depth_fmt(void);
+static char * dll_log_get_method_depth_arg(void);
 
-static const size_t _dlldbg_nested_depth_display_prefix_len =
-    sizeof(_dlldbg_nested_depth_display_prefix) - sizeof(char);
-static const size_t _dlldbg_nested_depth_display_len =
-    sizeof(_dlldbg_nested_depth_display) - sizeof(char);
-static const size_t _dlldbg_nested_depth_display_postfix_len =
-    sizeof(_dlldbg_nested_depth_display_postfix) - sizeof(char);
+static const char _dll_log_depth_display_prefix[]  = "⎸";
+static const char _dll_log_depth_display[]         = "⎯⎯";
+static const char _dll_log_depth_display_postfix[] = "▶";
 
-static void _dlldbg_atexit_clearance(void);
+static const size_t _dll_log_depth_display_prefix_len =
+    sizeof(_dll_log_depth_display_prefix) - sizeof(char);
+static const size_t _dll_log_depth_display_len =
+    sizeof(_dll_log_depth_display) - sizeof(char);
+static const size_t _dll_log_depth_display_postfix_len =
+    sizeof(_dll_log_depth_display_postfix) - sizeof(char);
+
+static void _dll_log_atexit_clearance(void);
 
 /**
  * ----------------------------
@@ -86,64 +96,72 @@ static void _dlldbg_atexit_clearance(void);
  */
 #  define dll_init_logger \
     { \
-      dlldbg_parent_filename_set(__FILE__); \
-      dlldbg_logfile_open(); \
-      atexit(_dlldbg_atexit_clearance); \
+      dll_log_src_filename_set(__FILE__); \
+      dll_log_file_open(); \
+      atexit(_dll_log_atexit_clearance); \
     }
 
-#  define DLLDBG_LOG_BASE_FILENAME "libdll.debug"
+#  define LIBDLL_LOG_BASE_FILENAME "libdll.debug"
 
-#  define DLLDBG_LOG(__fmt, ...) \
-    dlldbg_log_method_entry(__FILE__, __FUNCTION__, __fmt, __VA_ARGS__)
-#  define DLLDBG_LOG_VOID dlldbg_log_method_entry(__FILE__, __FUNCTION__, "%s", "void")
+#  define LIBDLL_LOG(__fmt, ...) dll_log(__FUNCTION__, __fmt, __VA_ARGS__)
 
-#  define DLLDBG_LOG_OUT(__fmt, ...) \
-    dlldbg_log_method_out(__FILE__, __FUNCTION__, __fmt, __VA_ARGS__)
-#  define DLLDBG_LOG_OUT_NULL dlldbg_log_method_out(__FILE__, __FUNCTION__, "%p", NULL)
-#  define DLLDBG_LOG_OUT_VOID dlldbg_log_method_out(__FILE__, __FUNCTION__, "%s", "void")
+#  define LIBDLL_LOG_ENTRY(__fmt, ...) \
+    dll_log_method_entry(__FUNCTION__, __fmt, __VA_ARGS__)
+#  define LIBDLL_LOG_ENTRY_VOID dll_log_method_entry(__FUNCTION__, "%s", "void")
 
-#  define DLLDBG_LOG_DLL_FN_FREE_FMT(__fn_free) #  __fn_free ": %s"
-#  define DLLDBG_LOG_DLL_FN_FREE_ARG(__fn_free) \
-    (__fn_free) == LIBDLL_FN_FREE_CLEARANCE ? "LIBDLL_FN_FREE_CLEARANCE" \
-    : (__fn_free) == LIBDLL_FN_FREE_NULL    ? "LIBDLL_FN_FREE_NULL" \
-                                            : "LIBDLL_FN_FREE_SET"
+#  define LIBDLL_LOG_OUT(__fmt, ...) dll_log_method_out(__FUNCTION__, __fmt, __VA_ARGS__)
+#  define LIBDLL_LOG_OUT_NULL        dll_log_method_out(__FUNCTION__, "%p", NULL)
+#  define LIBDLL_LOG_OUT_VOID        dll_log_method_out(__FUNCTION__, "%s", "void")
 
-#  define DLLDBG_LOG_DLL_OBJ_FMT(__obj) \
-#    __obj ": %p ( data: %p, data_size: %zu, prev: %p, next: %p, fn_free: %s )"
-#  define DLLDBG_LOG_DLL_OBJ_ARG(__obj) \
-    (__obj), (__obj) ? (__obj)->data : NULL, (__obj) ? (__obj)->data_size : 0, \
+#  define LIBDLL_LOG_DLL_DESTRUCTOR_FMT(__destructor) #  __destructor ": %s"
+#  define LIBDLL_LOG_DLL_DESTRUCTOR_ARG(__destructor) \
+    ((__destructor) == LIBDLL_DESTRUCTOR_DEFAULT ? "LIBDLL_DESTRUCTOR_DEFAULT" \
+     : (__destructor) == LIBDLL_DESTRUCTOR_NULL  ? "LIBDLL_DESTRUCTOR_NULL" \
+                                                 : "LIBDLL_DESTRUCTOR_CUSTOM")
+
+#  define LIBDLL_LOG_DLL_OBJ_FMT(__obj) \
+#    __obj ": %p ( data: %p, size: %zu, prev: %p, next: %p, destructor: %s )"
+#  define LIBDLL_LOG_DLL_OBJ_ARG(__obj) \
+    (__obj), (__obj) ? (__obj)->data : NULL, (__obj) ? (__obj)->size : 0, \
         (__obj) ? (__obj)->prev : NULL, (__obj) ? (__obj)->next : NULL, \
-        (__obj) ? DLLDBG_LOG_DLL_FN_FREE_ARG((__obj)->fn_free) : NULL
+        (__obj) ? LIBDLL_LOG_DLL_DESTRUCTOR_ARG((__obj)->destructor) : NULL
 
-#  define DLLDBG_LOG_DLL_FMT(__dll) #  __dll ": %p ( head: %p, tail: %p, objs_count: %zu)"
-#  define DLLDBG_LOG_DLL_ARG(__dll) \
+#  define LIBDLL_LOG_DLL_OBJ_DATA_FMT(__obj) \
+#    __obj "->data: %p ( size: %zu, destructor: %s )"
+#  define LIBDLL_LOG_DLL_OBJ_DATA_ARG(__obj) \
+    (__obj) ? (__obj)->data : NULL, (__obj) ? (__obj)->size : 0, \
+        (__obj) ? LIBDLL_LOG_DLL_DESTRUCTOR_ARG((__obj)->destructor) : NULL
+
+#  define LIBDLL_LOG_DLL_FMT(__dll) #  __dll ": %p ( head: %p, tail: %p, objs_count: %zu)"
+#  define LIBDLL_LOG_DLL_ARG(__dll) \
     (__dll), (__dll) ? (__dll)->head : NULL, (__dll) ? (__dll)->tail : NULL, \
         (__dll) ? (__dll)->objs_count : 0
 
-#  define DLLDBG_LOG_OUT_DEPTH_INC dlldbg_depth_inc()
-#  define DLLDBG_LOG_OUT_DEPTH_DEC dlldbg_depth_dec()
-#  define DLLDBG_LOG_OUT_DELIMITER dlldbg_depth_display_last_delimiter()
+#  define LIBDLL_LOG_OUT_DEPTH_INC dll_log_depth_inc()
+#  define LIBDLL_LOG_OUT_DEPTH_DEC dll_log_depth_dec()
+#  define LIBDLL_LOG_OUT_DELIMITER dll_log_depth_display_last_delimiter()
 
 /**
  * ----------------------------
  * Function definitions
  * ----------------------------
  */
-static inline char * dlldbg_parent_filename_get(void) {
+static inline char * dll_log_src_filename_get(void) {
   char * out = "unknown";
-  if (_dlldbg_parent_filename) {
-    out = _dlldbg_parent_filename;
+  if (_dll_log_src_filename) {
+    out = _dll_log_src_filename;
   }
   return out;
 }
-static inline void dlldbg_parent_filename_set(const char * filename) {
+static inline void dll_log_src_filename_set(const char * filename) {
   const size_t filename_len = strlen(filename);
 
-  assert((_dlldbg_parent_filename = calloc(filename_len + 1, sizeof(*filename))));
-  strcpy(_dlldbg_parent_filename, filename);
+  assert((_dll_log_src_filename = calloc(filename_len + 1, sizeof(*filename))));
+
+  strcpy(_dll_log_src_filename, filename);
 }
 
-static inline void dlldbg_logfile_open() {
+static inline void dll_log_file_open() {
   char timestamp_buff[128];
   char logfilename_buff[128];
 
@@ -159,155 +177,182 @@ static inline void dlldbg_logfile_open() {
       timestamp_buff, sizeof(timestamp_buff) - 1, "%y-%m-%d-%T", localtime(&tv.tv_sec));
   snprintf(logfilename_buff,
            sizeof(logfilename_buff) - 1,
-           "./%s_%s.%03d_%s.log",
-           DLLDBG_LOG_BASE_FILENAME,
+           "./%s_%s_%s.%03d.log",
+           LIBDLL_LOG_BASE_FILENAME,
+           dll_log_src_filename_get(),
            timestamp_buff,
-           millisec,
-           dlldbg_parent_filename_get());
+           millisec);
 
-  assert((_dlldbg_logfile = fopen(logfilename_buff, "w+")));
-  setbuf(_dlldbg_logfile, NULL);
+  assert((_dll_log_file = fopen(logfilename_buff, "w+")));
+  setbuf(_dll_log_file, NULL);
 }
 
-static inline void dlldbg_vfprintf(const char * fmt, va_list arg) {
-  if (_dlldbg_logfile) {
-    vfprintf(_dlldbg_logfile, fmt, arg);
+static inline void dll_log_vfprintf(const char * fmt, va_list arg) {
+  if (_dll_log_file) {
+    vfprintf(_dll_log_file, fmt, arg);
   }
 }
 
-static inline void dlldbg_fprintf(const char * fmt, ...) {
+static inline void dll_log_fprintf(const char * fmt, ...) {
   va_list argptr;
   va_start(argptr, fmt);
 
-  dlldbg_vfprintf(fmt, argptr);
+  dll_log_vfprintf(fmt, argptr);
 
   va_end(argptr);
 }
 
-static inline void dlldbg_fputs(const char * str) { dlldbg_fprintf("%s", str); }
+static inline void dll_log_fputs(const char * str) { dll_log_fprintf("%s", str); }
 
-static inline char * dlldbg_log_get_method_depth_fmt(void) {
+static inline void dll_log(const char * func, const char * fmt, ...) {
+  static char prefix_fmt[256];
+  va_list     argptr;
+
+  va_start(argptr, fmt);
+
+  char * restrict depth_fmt = dll_log_get_method_depth_fmt();
+  char * restrict depth_arg = dll_log_get_method_depth_arg();
+
+  prefix_fmt[0] = 0;
+
+  const size_t prefix_fmt_written_len =
+      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s ", depth_fmt);
+
+  prefix_fmt[prefix_fmt_written_len] = 0;
+
+  dll_log_fprintf(prefix_fmt, depth_arg, func);
+  dll_log_vfprintf(fmt, argptr);
+  dll_log_fputs("\n");
+
+  va_end(argptr);
+}
+
+static inline void dll_log_method_prefix(void) {
+  const char * restrict depth_fmt = dll_log_get_method_depth_fmt();
+  const char * restrict depth_arg = dll_log_get_method_depth_arg();
+
+  dll_log_fprintf(depth_fmt, depth_arg);
+  dll_log_fputs("\n");
+}
+
+static inline void dll_log_method_entry(const char * func, const char * fmt, ...) {
+  static char prefix_fmt[256];
+  va_list     argptr;
+
+  va_start(argptr, fmt);
+
+  char * restrict depth_fmt = dll_log_get_method_depth_fmt();
+  char * restrict depth_arg = dll_log_get_method_depth_arg();
+
+  prefix_fmt[0] = 0;
+
+  const size_t prefix_fmt_written_len =
+      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s ( ", depth_fmt);
+
+  prefix_fmt[prefix_fmt_written_len] = 0;
+
+  dll_log_fprintf(prefix_fmt, depth_arg, func);
+  dll_log_vfprintf(fmt, argptr);
+  dll_log_fprintf(" )\n");
+
+  va_end(argptr);
+}
+
+static inline void dll_log_method_out(const char * func, const char * fmt, ...) {
+  static char prefix_fmt[256];
+  va_list     argptr;
+
+  va_start(argptr, fmt);
+
+  char * restrict depth_fmt = dll_log_get_method_depth_fmt();
+  char * restrict depth_arg = dll_log_get_method_depth_arg();
+
+  prefix_fmt[0] = 0;
+
+  const size_t prefix_fmt_written_len =
+      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s return: ", depth_fmt);
+
+  prefix_fmt[prefix_fmt_written_len] = 0;
+
+  dll_log_fprintf(prefix_fmt, depth_arg, func);
+  dll_log_vfprintf(fmt, argptr);
+  dll_log_fprintf(";\n");
+  dll_log_depth_display_last_delimiter();
+
+  va_end(argptr);
+}
+
+static inline void dll_log_depth_display_last_delimiter(void) {
+  if (!_dll_log_depth) {
+    dll_log_fprintf("%s\n", _dll_log_depth_display_prefix);
+  }
+}
+
+static inline void dll_log_depth_inc(void) { _dll_log_depth += 1; }
+static inline void dll_log_depth_dec(void) {
+  if (0 != _dll_log_depth) {
+    _dll_log_depth -= 1;
+  }
+}
+static inline void   dll_log_depth_set(size_t depth) { _dll_log_depth = depth; }
+static inline size_t dll_log_depth_get(void) {
+  return _dll_log_depth ? _dll_log_depth : 1;
+}
+static inline void dll_log_depth_reset(void) { _dll_log_depth = 0; }
+
+static inline char * dll_log_get_method_depth_fmt(void) {
   static char  depth_fmt_str[128];
   const size_t depth_fmt_str_len = sizeof(depth_fmt_str);
-  const size_t depth_fmt_len = _dlldbg_nested_depth * _dlldbg_nested_depth_display_len;
+  const size_t depth_fmt_len     = _dll_log_depth_display_prefix_len +
+                               (_dll_log_depth_display_len * dll_log_depth_get()) +
+                               _dll_log_depth_display_postfix_len + 2;
 
   depth_fmt_str[0] = 0;
   const size_t depth_fmt_written_len =
-      snprintf(depth_fmt_str, 15, "%%%zus", depth_fmt_len);
+      snprintf(depth_fmt_str, depth_fmt_str_len - 1, "%%%zus", depth_fmt_len);
   depth_fmt_str[depth_fmt_written_len] = 0;
 
   return depth_fmt_str;
 }
 
-static inline char * dlldbg_log_get_method_depth_arg(void) {
+static inline char * dll_log_get_method_depth_arg(void) {
   static char  depth_arg_buff[512];
   const size_t depth_arg_buff_len = sizeof(depth_arg_buff);
   static char  depth_arg_display_buff[512];
   const size_t depth_arg_display_buff_len = sizeof(depth_arg_display_buff);
+  const size_t depth                      = dll_log_depth_get();
 
-  for (size_t i = 0; _dlldbg_nested_depth > i; i++) {
-    const size_t buff_iptr = _dlldbg_nested_depth_display_len * i;
-    strcpy(depth_arg_display_buff + buff_iptr, _dlldbg_nested_depth_display);
+  for (size_t i = 0; depth > i; i++) {
+    const size_t buff_iptr = _dll_log_depth_display_len * i;
+    strcpy(depth_arg_display_buff + buff_iptr, _dll_log_depth_display);
   }
-  depth_arg_display_buff[_dlldbg_nested_depth * _dlldbg_nested_depth_display_len] = 0;
+  depth_arg_display_buff[_dll_log_depth_display_len * depth] = 0;
 
   const size_t depth_arg_written_len    = snprintf(depth_arg_buff,
                                                 depth_arg_buff_len,
                                                 "%s %s%s ",
-                                                _dlldbg_nested_depth_display_prefix,
+                                                _dll_log_depth_display_prefix,
                                                 depth_arg_display_buff,
-                                                _dlldbg_nested_depth_display_postfix);
+                                                _dll_log_depth_display_postfix);
   depth_arg_buff[depth_arg_written_len] = 0;
 
   return depth_arg_buff;
 }
 
-static inline void dlldbg_log_method_prefix(void) {
-  const char * restrict depth_fmt = dlldbg_log_get_method_depth_fmt();
-  const char * restrict depth_arg = dlldbg_log_get_method_depth_arg();
-
-  dlldbg_fprintf(depth_fmt, depth_arg);
-  dlldbg_fputs("\n");
-}
-
-static inline void
-    dlldbg_log_method_entry(const char * file, const char * func, const char * fmt, ...) {
-  static char prefix_fmt[64];
-  va_list     argptr;
-
-  va_start(argptr, fmt);
-
-  char * restrict depth_fmt = dlldbg_log_get_method_depth_fmt();
-  char * restrict depth_arg = dlldbg_log_get_method_depth_arg();
-
-  prefix_fmt[0] = 0;
-
-  const size_t prefix_fmt_written_len =
-      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s:%%s ( ", depth_fmt);
-
-  prefix_fmt[prefix_fmt_written_len] = 0;
-
-  dlldbg_fprintf(prefix_fmt, depth_arg, file, func);
-  dlldbg_vfprintf(fmt, argptr);
-  dlldbg_fprintf(" )\n");
-
-  va_end(argptr);
-}
-
-static inline void
-    dlldbg_log_method_out(const char * file, const char * func, const char * fmt, ...) {
-  static char prefix_fmt[64];
-  va_list     argptr;
-
-  va_start(argptr, fmt);
-
-  char * restrict depth_fmt = dlldbg_log_get_method_depth_fmt();
-  char * restrict depth_arg = dlldbg_log_get_method_depth_arg();
-
-  prefix_fmt[0] = 0;
-
-  const size_t prefix_fmt_written_len =
-      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s %%s return: ", depth_fmt);
-
-  prefix_fmt[prefix_fmt_written_len] = 0;
-
-  dlldbg_fprintf(prefix_fmt, depth_arg, file, func);
-  dlldbg_vfprintf(fmt, argptr);
-  dlldbg_fprintf(";\n");
-  dlldbg_depth_display_last_delimiter();
-
-  va_end(argptr);
-}
-
-static inline void dlldbg_depth_display_last_delimiter(void) {
-  if (!_dlldbg_nested_depth) {
-    dlldbg_fprintf("%s\n", _dlldbg_nested_depth_display_prefix);
-  }
-}
-
-static inline void dlldbg_depth_inc(void) { _dlldbg_nested_depth += 1; }
-static inline void dlldbg_depth_dec(void) {
-  if (0 != _dlldbg_nested_depth) {
-    _dlldbg_nested_depth -= 1;
-  }
-}
-static inline void dlldbg_depth_set(size_t depth) { _dlldbg_nested_depth = depth; }
-static inline void dlldbg_depth_reset(void) { _dlldbg_nested_depth = 0; }
-
-static inline void _dlldbg_atexit_clearance(void) {
-  if (_dlldbg_parent_filename) {
-    free(_dlldbg_parent_filename);
+static inline void _dll_log_atexit_clearance(void) {
+  if (_dll_log_src_filename) {
+    free(_dll_log_src_filename);
   }
 
-  if (_dlldbg_logfile) {
-    fclose(_dlldbg_logfile);
+  if (_dll_log_file) {
+    fclose(_dll_log_file);
   }
 
-  _dlldbg_parent_filename = NULL;
-  _dlldbg_logfile         = NULL;
+  _dll_log_src_filename = NULL;
+  _dll_log_file         = NULL;
 }
 
-#else /* if LIBDLL_DEBUG_INFO not defined */
+#else /* if LIBDLL_LOGGER not defined */
 
 /**
  * Dummy macroses to prevent any errors.
@@ -315,27 +360,95 @@ static inline void _dlldbg_atexit_clearance(void) {
 
 #  define dll_init_logger ((void)0)
 
-#  define DLLDBG_LOG_BASE_FILENAME
+#  define LIBDLL_LOG_BASE_FILENAME
 
-#  define DLLDBG_LOG(__fmt, ...)
-#  define DLLDBG_LOG_VOID
+#  define LIBDLL_LOG(__fmt, ...)
 
-#  define DLLDBG_LOG_OUT(__fmt, ...)
-#  define DLLDBG_LOG_OUT_NULL
-#  define DLLDBG_LOG_OUT_VOID
-#  define DLLDBG_LOG_DLL_FN_FREE_FMT(__fn_free)
-#  define DLLDBG_LOG_DLL_FN_FREE_ARG(__fn_free)
+#  define LIBDLL_LOG_ENTRY(__fmt, ...)
+#  define LIBDLL_LOG_ENTRY_VOID
 
-#  define DLLDBG_LOG_DLL_OBJ_FMT(__obj)
-#  define DLLDBG_LOG_DLL_OBJ_ARG(__obj)
+#  define LIBDLL_LOG_OUT(__fmt, ...)
+#  define LIBDLL_LOG_OUT_NULL
+#  define LIBDLL_LOG_OUT_VOID
 
-#  define DLLDBG_LOG_DLL_FMT(__dll)
-#  define DLLDBG_LOG_DLL_ARG(__dll)
+#  define LIBDLL_LOG_DLL_DESTRUCTOR_FMT(__destructor)
+#  define LIBDLL_LOG_DLL_DESTRUCTOR_ARG(__destructor)
 
-#  define DLLDBG_LOG_OUT_DEPTH_INC
-#  define DLLDBG_LOG_OUT_DEPTH_DEC
-#  define DLLDBG_LOG_OUT_DELIMITER
+#  define LIBDLL_LOG_DLL_OBJ_FMT(__obj)
+#  define LIBDLL_LOG_DLL_OBJ_ARG(__obj)
 
-#endif /* LIBDLL_DEBUG_INFO */
+#  define LIBDLL_LOG_DLL_OBJ_DATA_FMT(__obj)
+#  define LIBDLL_LOG_DLL_OBJ_DATA_ARG(__obj)
+
+#  define LIBDLL_LOG_DLL_FMT(__dll)
+#  define LIBDLL_LOG_DLL_ARG(__dll)
+
+#  define LIBDLL_LOG_OUT_DEPTH_INC
+#  define LIBDLL_LOG_OUT_DEPTH_DEC
+#  define LIBDLL_LOG_OUT_DELIMITER
+
+#endif /* LIBDLL_LOGGER */
+
+/**
+ * -------------------------------
+ * Internal-specific log macroses
+ * -------------------------------
+ */
+#if 1 == LIBDLL_LOGGER && 1 == LIBDLL_LOGGER_INTERNAL
+
+#  define LIBDLL_INTERNAL_LOG(__fmt, ...) LIBDLL_LOG(__fmt, __VA_ARGS__)
+
+#  define LIBDLL_INTERNAL_LOG_ENTRY(__fmt, ...) LIBDLL_LOG_ENTRY(__fmt, __VA_ARGS__)
+#  define LIBDLL_INTERNAL_LOG_ENTRY_VOID        LIBDLL_LOG_ENTRY_VOID
+
+#  define LIBDLL_INTERNAL_LOG_OUT(__fmt, ...) LIBDLL_LOG_OUT(__fmt, __VA_ARGS__)
+#  define LIBDLL_INTERNAL_LOG_OUT_NULL        LIBDLL_LOG_OUT_NULL
+#  define LIBDLL_INTERNAL_LOG_OUT_VOID        LIBDLL_LOG_OUT_VOID
+
+#  define LIBDLL_INTERNAL_LOG_DLL_DESTRUCTOR_FMT(__destructor) \
+    LIBDLL_LOG_DLL_DESTRUCTOR_FMT(__destructor)
+#  define LIBDLL_INTERNAL_LOG_DLL_DESTRUCTOR_ARG(__destructor) \
+    LIBDLL_LOG_DLL_DESTRUCTOR_ARG(__destructor)
+
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(__obj) LIBDLL_LOG_DLL_OBJ_FMT(__obj)
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(__obj) LIBDLL_LOG_DLL_OBJ_ARG(__obj)
+
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(__obj) LIBDLL_LOG_DLL_OBJ_DATA_FMT(__obj)
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(__obj) LIBDLL_LOG_DLL_OBJ_DATA_ARG(__obj)
+
+#  define LIBDLL_INTERNAL_LOG_DLL_FMT(__dll) LIBDLL_LOG_DLL_FMT(__dll)
+#  define LIBDLL_INTERNAL_LOG_DLL_ARG(__dll) LIBDLL_LOG_DLL_ARG(__dll)
+
+#  define LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC LIBDLL_LOG_OUT_DEPTH_INC
+#  define LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC LIBDLL_LOG_OUT_DEPTH_DEC
+#  define LIBDLL_INTERNAL_LOG_OUT_DELIMITER LIBDLL_LOG_OUT_DELIMITER
+
+#else
+#  define LIBDLL_INTERNAL_LOG(__fmt, ...)
+
+#  define LIBDLL_INTERNAL_LOG_ENTRY(__fmt, ...)
+#  define LIBDLL_INTERNAL_LOG_ENTRY_VOID
+
+#  define LIBDLL_INTERNAL_LOG_OUT(__fmt, ...)
+#  define LIBDLL_INTERNAL_LOG_OUT_NULL
+#  define LIBDLL_INTERNAL_LOG_OUT_VOID
+
+#  define LIBDLL_INTERNAL_LOG_DLL_DESTRUCTOR_FMT(__destructor)
+#  define LIBDLL_INTERNAL_LOG_DLL_DESTRUCTOR_ARG(__destructor)
+
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_FMT(__obj)
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(__obj)
+
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(__obj)
+#  define LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(__obj)
+
+#  define LIBDLL_INTERNAL_LOG_DLL_FMT(__dll)
+#  define LIBDLL_INTERNAL_LOG_DLL_ARG(__dll)
+
+#  define LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC
+#  define LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC
+#  define LIBDLL_INTERNAL_LOG_OUT_DELIMITER
+
+#endif
 
 #endif /* LIBDLL_LOG_H */
