@@ -164,7 +164,7 @@ static void _dll_log_atexit_clearance(void);
     (__obj) ? (__obj)->data : NULL, (__obj) ? (__obj)->size : 0, \
         (__obj) ? LIBDLL_LOG_DLL_DESTRUCTOR_ARG((__obj)->destructor) : NULL
 
-#  define LIBDLL_LOG_DLL_FMT(__dll) #  __dll ": %p ( head: %p, tail: %p, objs_count: %zu)"
+#  define LIBDLL_LOG_DLL_FMT(__dll) #  __dll ": %p ( head: %p, tail: %p, objs_count: %zu )"
 #  define LIBDLL_LOG_DLL_ARG(__dll) \
     (__dll), (__dll) ? (__dll)->head : NULL, (__dll) ? (__dll)->tail : NULL, \
         (__dll) ? (__dll)->objs_count : 0
@@ -324,7 +324,7 @@ static inline void dll_log_method_entry(_dll_log_severity_t sev,
 
   va_start(argptr, fmt);
 
-  dll_log_prefix(sev, func, NULL);
+  dll_log_prefix(sev, func, " (");
   dll_log_vfprintf(fmt, argptr);
   dll_log_fprintf(" )\n");
 
@@ -360,10 +360,8 @@ static inline void dll_log_depth_dec(void) {
   }
 }
 static inline void   dll_log_depth_set(size_t depth) { _dll_log_depth = depth; }
-static inline size_t dll_log_depth_get(void) {
-  return _dll_log_depth ? _dll_log_depth : 1;
-}
-static inline void dll_log_depth_reset(void) { _dll_log_depth = 0; }
+static inline size_t dll_log_depth_get(void) { return _dll_log_depth; }
+static inline void   dll_log_depth_reset(void) { _dll_log_depth = 0; }
 
 static inline char * dll_log_get_method_depth_fmt(void) {
   static char  depth_fmt_str[128];
