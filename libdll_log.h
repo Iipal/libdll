@@ -209,7 +209,7 @@ static inline void dll_log_file_open() {
       timestamp_buff, sizeof(timestamp_buff) - 1, "%y-%m-%d-%T", localtime(&tv.tv_sec));
   snprintf(logfilename_buff,
            sizeof(logfilename_buff) - 1,
-           "./%s_%s_%s.%03d.log",
+           "./%s.%s.%s.%03d.log",
            LIBDLL_LOG_BASE_FILENAME,
            dll_log_src_filename_get(),
            timestamp_buff,
@@ -257,6 +257,7 @@ static inline char * dll_log_get_severity_arg(_dll_log_severity_t sev) {
 static inline void dll_log_prefix(_dll_log_severity_t sev,
                                   const char *        func,
                                   const char * restrict postfix) {
+  static char old_timestamp[128];
   static char prefix_fmt[256];
 
   const char * restrict depth_fmt = dll_log_get_method_depth_fmt();
@@ -265,18 +266,41 @@ static inline void dll_log_prefix(_dll_log_severity_t sev,
   const char * const restrict sev_fmt = dll_log_get_severity_fmt(sev);
   const char * const restrict sev_arg = dll_log_get_severity_arg(sev);
 
+  struct timeval tv;
+  char           new_timestamp_buff[128];
+
+  gettimeofday(&tv, NULL);
+  int millisec = tv.tv_usec / 1000.0;
+  if (millisec >= 1000) {
+    millisec -= 1000;
+    tv.tv_sec++;
+  }
+
+  strftime(new_timestamp_buff,
+           sizeof(new_timestamp_buff) - 1,
+           "%y.%m.%d-%T",
+           localtime(&tv.tv_sec));
+
+  const bool is_timestamp_same =
+      old_timestamp[0] ? !strcmp(old_timestamp, new_timestamp_buff) : false;
+
   prefix_fmt[0] = 0;
 
-  const size_t prefix_fmt_written_len = snprintf(prefix_fmt,
-                                                 sizeof(prefix_fmt) - 1,
-                                                 "%s%s %%s%s ",
-                                                 depth_fmt,
-                                                 sev_fmt,
-                                                 postfix ? postfix : "");
+  const size_t prefix_fmt_written_len =
+      snprintf(prefix_fmt,
+               sizeof(prefix_fmt) - 1,
+               "%s%s %-17s.%03ld ms⎹ %%s%s ",
+               depth_fmt,
+               sev_fmt,
+               !is_timestamp_same ? new_timestamp_buff : "",
+               tv.tv_usec,
+               postfix ? postfix : "");
 
   prefix_fmt[prefix_fmt_written_len] = 0;
 
   dll_log_fprintf(prefix_fmt, depth_arg, sev_arg, func);
+
+  strcpy(old_timestamp, new_timestamp_buff);
 }
 
 static inline void
