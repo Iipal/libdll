@@ -368,7 +368,7 @@ static inline void dll_splice(dll_t * restrict dst,
 
 /**
  * \brief Removes all list-objects satisfying specific criteria \a value via \a fn_cmp
- * from \a dll. Applies for all list-objects for which \a fn_cmp return a positive value.
+ * from \a dll. Applies for all list-objects for which \a fn_cmp return a zero value.
  *
  * \param dll list from which list-objects will be removed.
  * \param value any data to be compared with each list-object.
@@ -377,7 +377,7 @@ static inline void dll_splice(dll_t * restrict dst,
  * \return count of removed objects from list \a dll.
  */
 static inline size_t
-    dll_remove(dll_t * restrict dll, void * restrict value, dll_callback_cmp_fn_t fn_cmp);
+    dll_remove(dll_t * restrict dll, dll_callback_cmp_fn_t fn_cmp, void * restrict value);
 
 /**
  * \brief Reverses the order of the list-objects in the list.
@@ -385,6 +385,20 @@ static inline size_t
  * \param dll list to be reversed.
  */
 static inline void dll_reverse(dll_t * restrict dll);
+
+/**
+ * \brief Search for specific \c data via \c fn_search when it returns zero value.
+ *
+ * \param dll search list
+ * \param fn_search function which will deside is \c data is valid
+ * \param additional an additional data that will be passed to the second argument of \c
+ * fn_search if it's needed
+ *
+ * \return first occurence of searched data in list \a dll, NULL otherwise.
+ */
+static inline void * dll_find(dll_t * restrict dll,
+                              dll_callback_cmp_fn_t fn_search,
+                              void * restrict additional);
 
 /**
  * \brief Removes all consecutive duplicate list-objects from the list.
@@ -837,7 +851,7 @@ static inline void dll_foreach(const dll_t * restrict dll, dll_callback_fn_t fn)
   LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
 
   for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
-    LIBDLL_INTERNAL_LOG("callee: %p, " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj),
+    LIBDLL_INTERNAL_LOG("callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) " )",
                         fn,
                         LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj));
     fn(iobj->data);
@@ -1048,12 +1062,13 @@ static inline void dll_splice(dll_t * restrict dst,
 }
 
 static inline size_t dll_remove(dll_t * restrict dll,
-                                void * restrict value,
-                                dll_callback_cmp_fn_t fn_cmp) {
-  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", value: %p, fn_cmp: %p",
+                                dll_callback_cmp_fn_t fn_cmp,
+                                void * restrict value) {
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", fn_cmp: %p, value: %p",
                    LIBDLL_LOG_DLL_ARG(dll),
-                   value,
-                   fn_cmp);
+
+                   fn_cmp,
+                   value);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
@@ -1070,7 +1085,12 @@ static inline size_t dll_remove(dll_t * restrict dll,
 
   while (iobj) {
     save = iobj->next;
-    if (0 < fn_cmp(iobj->data, value)) {
+    LIBDLL_INTERNAL_LOG(
+        "callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) ", value: %p )",
+        fn_cmp,
+        LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj),
+        value);
+    if (!fn_cmp(iobj->data, value)) {
       dll_del(dll, iobj);
       ++removed_objs;
     }
@@ -1120,6 +1140,44 @@ static inline void dll_reverse(dll_t * restrict dll) {
 
   LIBDLL_LOG_OUT_DEPTH_DEC;
   LIBDLL_LOG_OUT_VOID;
+}
+
+static inline void * dll_find(dll_t * restrict dll,
+                              dll_callback_cmp_fn_t fn_search,
+                              void * restrict additional) {
+  LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", fn_search: %p, additional: %p",
+                   LIBDLL_LOG_DLL_ARG(dll),
+                   fn_search,
+                   additional);
+
+#ifndef LIBDLL_UNSAFE_USAGE
+  if (__dll_unlikely(NULL == dll || NULL == fn_search)) {
+    LIBDLL_LOG_OUT_SEV(LIBDLL_LOG_SEV_ERR, "%p", NULL);
+    return NULL;
+  }
+#endif /* LIBDLL_UNSAFE_USAGE */
+
+  void * restrict out = NULL;
+
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
+
+  dll_obj_t * restrict iobj;
+  for (iobj = dll->head; iobj; iobj = iobj->next) {
+    LIBDLL_INTERNAL_LOG(
+        "callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) ", additional: %p )",
+        fn_search,
+        LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj),
+        additional);
+    if (!fn_search(iobj->data, additional)) {
+      out = iobj->data;
+      break;
+    }
+  }
+
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC;
+
+  LIBDLL_LOG_OUT(LIBDLL_LOG_DLL_OBJ_DATA_FMT(iobj), LIBDLL_LOG_DLL_OBJ_DATA_ARG(iobj));
+  return out;
 }
 
 static inline size_t dll_unique(dll_t * restrict dll, dll_callback_cmp_fn_t fn_cmp) {
@@ -1178,8 +1236,8 @@ static inline dll_obj_t * __dlli_msort(dll_obj_t * restrict first,
 
   dll_obj_t * out = NULL;
 
-  LIBDLL_INTERNAL_LOG("callee: %p, " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
-                          first) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(second),
+  LIBDLL_INTERNAL_LOG("callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
+                          first) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(second) " )",
                       fn_sort,
                       LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(first),
                       LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(second));
