@@ -58,11 +58,27 @@ static void dll_log_vfprintf(const char * fmt, va_list arg);
 static void dll_log_fprintf(const char * fmt, ...);
 static void dll_log_fputs(const char * str);
 
-static void dll_log(const char * func, const char * fmt, ...);
+typedef enum _e_dll_log_severity {
+  _LIBDLL_LOG_SEV_NONE = -1,
+  _LIBDLL_LOG_SEV_START,
+  LIBDLL_LOG_SEV_INF = _LIBDLL_LOG_SEV_START,
+  LIBDLL_LOG_SEV_WRN,
+  LIBDLL_LOG_SEV_ERR,
+  LIBDLL_LOG_SEV_INT,
+  _LIBDLL_LOG_SEV_END,
+} _dll_log_severity_t;
 
-static void dll_log_method_prefix(void);
-static void dll_log_method_entry(const char * func, const char * fmt, ...);
-static void dll_log_method_out(const char * func, const char * fmt, ...);
+static void dll_log(_dll_log_severity_t sev, const char * func, const char * fmt, ...);
+static void dll_log_prefix(_dll_log_severity_t sev,
+                           const char *        func,
+                           const char * restrict postfix);
+
+static void dll_log_method_entry(_dll_log_severity_t sev,
+                                 const char *        func,
+                                 const char *        fmt,
+                                 ...);
+static void
+    dll_log_method_out(_dll_log_severity_t sev, const char * func, const char * fmt, ...);
 
 static void dll_log_depth_display_last_delimiter(void);
 
@@ -103,15 +119,31 @@ static void _dll_log_atexit_clearance(void);
 
 #  define LIBDLL_LOG_BASE_FILENAME "libdll.debug"
 
-#  define LIBDLL_LOG(__fmt, ...) dll_log(__FUNCTION__, __fmt, __VA_ARGS__)
+#  define LILIBDLL_LOG_SEV(__sev, __fmt, ...) \
+    dll_log(__sev, __FUNCTION__, __fmt, __VA_ARGS__)
+#  define LIBDLL_LOG(__fmt, ...) LILIBDLL_LOG_SEV(LIBDLL_LOG_SEV_INF, __fmt, __VA_ARGS__)
 
+#  define LIBDLL_LOG_ENTRY_SEV(__sev, __fmt, ...) \
+    dll_log_method_entry(__sev, __FUNCTION__, __fmt, __VA_ARGS__)
 #  define LIBDLL_LOG_ENTRY(__fmt, ...) \
-    dll_log_method_entry(__FUNCTION__, __fmt, __VA_ARGS__)
-#  define LIBDLL_LOG_ENTRY_VOID dll_log_method_entry(__FUNCTION__, "%s", "void")
+    LIBDLL_LOG_ENTRY_SEV(LIBDLL_LOG_SEV_INF, __fmt, __VA_ARGS__)
 
-#  define LIBDLL_LOG_OUT(__fmt, ...) dll_log_method_out(__FUNCTION__, __fmt, __VA_ARGS__)
-#  define LIBDLL_LOG_OUT_NULL        dll_log_method_out(__FUNCTION__, "%p", NULL)
-#  define LIBDLL_LOG_OUT_VOID        dll_log_method_out(__FUNCTION__, "%s", "void")
+#  define LIBDLL_LOG_ENTRY_VOID_SEV(__sev) \
+    dll_log_method_entry(__sev, __FUNCTION__, "%s", "void")
+#  define LIBDLL_LOG_ENTRY_VOID LIBDLL_LOG_ENTRY_VOID_SEV(LIBDLL_LOG_SEV_INF)
+
+#  define LIBDLL_LOG_OUT_SEV(__sev, __fmt, ...) \
+    dll_log_method_out(__sev, __FUNCTION__, __fmt, __VA_ARGS__)
+#  define LIBDLL_LOG_OUT(__fmt, ...) \
+    LIBDLL_LOG_OUT_SEV(LIBDLL_LOG_SEV_INF, __fmt, __VA_ARGS__)
+
+#  define LIBDLL_LOG_OUT_NULL_SEV(__sev) \
+    dll_log_method_out(__sev, __FUNCTION__, "%p", NULL)
+#  define LIBDLL_LOG_OUT_NULL LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_INF)
+
+#  define LIBDLL_LOG_OUT_VOID_SEV(__sev) \
+    dll_log_method_out(__sev, __FUNCTION__, "%s", "void")
+#  define LIBDLL_LOG_OUT_VOID LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_INF)
 
 #  define LIBDLL_LOG_DLL_DESTRUCTOR_FMT(__destructor) #  __destructor ": %s"
 #  define LIBDLL_LOG_DLL_DESTRUCTOR_ARG(__destructor) \
@@ -204,77 +236,86 @@ static inline void dll_log_fprintf(const char * fmt, ...) {
 
 static inline void dll_log_fputs(const char * str) { dll_log_fprintf("%s", str); }
 
-static inline void dll_log(const char * func, const char * fmt, ...) {
+static inline char * dll_log_get_severity_fmt(_dll_log_severity_t sev) {
+  if (_LIBDLL_LOG_SEV_NONE == sev) {
+    return "%s";
+  }
+
+  return "⎸%-8s⎹";
+}
+static inline char * dll_log_get_severity_arg(_dll_log_severity_t sev) {
+  if (_LIBDLL_LOG_SEV_NONE == sev) {
+    return "";
+  }
+
+  return (char * [_LIBDLL_LOG_SEV_END]){[LIBDLL_LOG_SEV_INF] = "INFO",
+                                        [LIBDLL_LOG_SEV_WRN] = "WARNING",
+                                        [LIBDLL_LOG_SEV_ERR] = "ERROR",
+                                        [LIBDLL_LOG_SEV_INT] = "INTERNAL"}[sev];
+}
+
+static inline void dll_log_prefix(_dll_log_severity_t sev,
+                                  const char *        func,
+                                  const char * restrict postfix) {
   static char prefix_fmt[256];
-  va_list     argptr;
 
-  va_start(argptr, fmt);
+  const char * restrict depth_fmt = dll_log_get_method_depth_fmt();
+  const char * restrict depth_arg = dll_log_get_method_depth_arg();
 
-  char * restrict depth_fmt = dll_log_get_method_depth_fmt();
-  char * restrict depth_arg = dll_log_get_method_depth_arg();
+  const char * const restrict sev_fmt = dll_log_get_severity_fmt(sev);
+  const char * const restrict sev_arg = dll_log_get_severity_arg(sev);
 
   prefix_fmt[0] = 0;
 
-  const size_t prefix_fmt_written_len =
-      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s ", depth_fmt);
+  const size_t prefix_fmt_written_len = snprintf(prefix_fmt,
+                                                 sizeof(prefix_fmt) - 1,
+                                                 "%s%s %%s%s ",
+                                                 depth_fmt,
+                                                 sev_fmt,
+                                                 postfix ? postfix : "");
 
   prefix_fmt[prefix_fmt_written_len] = 0;
 
-  dll_log_fprintf(prefix_fmt, depth_arg, func);
+  dll_log_fprintf(prefix_fmt, depth_arg, sev_arg, func);
+}
+
+static inline void
+    dll_log(_dll_log_severity_t sev, const char * func, const char * fmt, ...) {
+  va_list argptr;
+
+  va_start(argptr, fmt);
+
+  dll_log_prefix(sev, func, NULL);
   dll_log_vfprintf(fmt, argptr);
   dll_log_fputs("\n");
 
   va_end(argptr);
 }
 
-static inline void dll_log_method_prefix(void) {
-  const char * restrict depth_fmt = dll_log_get_method_depth_fmt();
-  const char * restrict depth_arg = dll_log_get_method_depth_arg();
-
-  dll_log_fprintf(depth_fmt, depth_arg);
-  dll_log_fputs("\n");
-}
-
-static inline void dll_log_method_entry(const char * func, const char * fmt, ...) {
-  static char prefix_fmt[256];
-  va_list     argptr;
+static inline void dll_log_method_entry(_dll_log_severity_t sev,
+                                        const char *        func,
+                                        const char *        fmt,
+                                        ...) {
+  va_list argptr;
 
   va_start(argptr, fmt);
 
-  char * restrict depth_fmt = dll_log_get_method_depth_fmt();
-  char * restrict depth_arg = dll_log_get_method_depth_arg();
-
-  prefix_fmt[0] = 0;
-
-  const size_t prefix_fmt_written_len =
-      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s ( ", depth_fmt);
-
-  prefix_fmt[prefix_fmt_written_len] = 0;
-
-  dll_log_fprintf(prefix_fmt, depth_arg, func);
+  dll_log_prefix(sev, func, NULL);
   dll_log_vfprintf(fmt, argptr);
   dll_log_fprintf(" )\n");
 
   va_end(argptr);
 }
 
-static inline void dll_log_method_out(const char * func, const char * fmt, ...) {
-  static char prefix_fmt[256];
-  va_list     argptr;
+static inline void dll_log_method_out(_dll_log_severity_t sev,
+                                      const char *        func,
+                                      const char *        fmt,
+                                      ...) {
+  va_list argptr;
 
   va_start(argptr, fmt);
 
-  char * restrict depth_fmt = dll_log_get_method_depth_fmt();
-  char * restrict depth_arg = dll_log_get_method_depth_arg();
-
-  prefix_fmt[0] = 0;
-
-  const size_t prefix_fmt_written_len =
-      snprintf(prefix_fmt, sizeof(prefix_fmt) - 1, "%s%%s return: ", depth_fmt);
-
-  prefix_fmt[prefix_fmt_written_len] = 0;
-
-  dll_log_fprintf(prefix_fmt, depth_arg, func);
+  dll_log_prefix(sev, func, " return:");
   dll_log_vfprintf(fmt, argptr);
   dll_log_fprintf(";\n");
   dll_log_depth_display_last_delimiter();
@@ -362,13 +403,22 @@ static inline void _dll_log_atexit_clearance(void) {
 
 #  define LIBDLL_LOG_BASE_FILENAME
 
+#  define LILIBDLL_LOG_SEV(__sev, __fmt, ...)
 #  define LIBDLL_LOG(__fmt, ...)
 
+#  define LIBDLL_LOG_ENTRY_SEV(__sev, __fmt, ...)
 #  define LIBDLL_LOG_ENTRY(__fmt, ...)
+
+#  define LIBDLL_LOG_ENTRY_VOID_SEV(__sev)
 #  define LIBDLL_LOG_ENTRY_VOID
 
+#  define LIBDLL_LOG_OUT_SEV(__sev, __fmt, ...)
 #  define LIBDLL_LOG_OUT(__fmt, ...)
+
+#  define LIBDLL_LOG_OUT_NULL_SEV(__sev)
 #  define LIBDLL_LOG_OUT_NULL
+
+#  define LIBDLL_LOG_OUT_VOID_SEV(__sev)
 #  define LIBDLL_LOG_OUT_VOID
 
 #  define LIBDLL_LOG_DLL_DESTRUCTOR_FMT(__destructor)
@@ -396,14 +446,32 @@ static inline void _dll_log_atexit_clearance(void) {
  */
 #if 1 == LIBDLL_LOGGER && 1 == LIBDLL_LOGGER_INTERNAL
 
-#  define LIBDLL_INTERNAL_LOG(__fmt, ...) LIBDLL_LOG(__fmt, __VA_ARGS__)
+#  define LIBDLL_INTERNAL_LOG_SEV(__sev, __fmt, ...) \
+    LILIBDLL_LOG_SEV(__sev, __fmt, __VA_ARGS__)
+#  define LIBDLL_INTERNAL_LOG(__fmt, ...) \
+    LIBDLL_INTERNAL_LOG_SEV(LIBDLL_LOG_SEV_INT, __fmt, __VA_ARGS__)
 
-#  define LIBDLL_INTERNAL_LOG_ENTRY(__fmt, ...) LIBDLL_LOG_ENTRY(__fmt, __VA_ARGS__)
-#  define LIBDLL_INTERNAL_LOG_ENTRY_VOID        LIBDLL_LOG_ENTRY_VOID
+#  define LIBDLL_INTERNAL_LOG_ENTRY_SEV(__sev, __fmt, ...) \
+    LIBDLL_LOG_ENTRY_SEV(__sev, __fmt, __VA_ARGS__)
+#  define LIBDLL_INTERNAL_LOG_ENTRY(__fmt, ...) \
+    LIBDLL_INTERNAL_LOG_ENTRY_SEV(LIBDLL_LOG_SEV_INT, __fmt, __VA_ARGS__)
 
-#  define LIBDLL_INTERNAL_LOG_OUT(__fmt, ...) LIBDLL_LOG_OUT(__fmt, __VA_ARGS__)
-#  define LIBDLL_INTERNAL_LOG_OUT_NULL        LIBDLL_LOG_OUT_NULL
-#  define LIBDLL_INTERNAL_LOG_OUT_VOID        LIBDLL_LOG_OUT_VOID
+#  define LIBDLL_INTERNAL_LOG_ENTRY_VOID_SEV(__sev) LIBDLL_LOG_ENTRY_VOID_SEV(__sev)
+#  define LIBDLL_INTERNAL_LOG_ENTRY_VOID \
+    LIBDLL_INTERNAL_LOG_ENTRY_VOID_SEV(LIBDLL_LOG_SEV_INT)
+
+#  define LIBDLL_INTERNAL_LOG_OUT_SEV(__sev, __fmt, ...) \
+    LIBDLL_LOG_OUT_SEV(__sev, __fmt, __VA_ARGS__)
+#  define LIBDLL_INTERNAL_LOG_OUT(__fmt, ...) \
+    LIBDLL_INTERNAL_LOG_OUT_SEV(LIBDLL_LOG_SEV_INT, __fmt, __VA_ARGS__)
+
+#  define LIBDLL_INTERNAL_LOG_OUT_NULL_SEV(__sev) LIBDLL_LOG_OUT_NULL(__sev)
+#  define LIBDLL_INTERNAL_LOG_OUT_NULL \
+    LIBDLL_INTERNAL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_INT)
+
+#  define LIBDLL_INTERNAL_LOG_OUT_VOID_SEV(__sev) LIBDLL_LOG_OUT_VOID_SEV(__sev)
+#  define LIBDLL_INTERNAL_LOG_OUT_VOID \
+    LIBDLL_INTERNAL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_INT)
 
 #  define LIBDLL_INTERNAL_LOG_DLL_DESTRUCTOR_FMT(__destructor) \
     LIBDLL_LOG_DLL_DESTRUCTOR_FMT(__destructor)
@@ -424,13 +492,22 @@ static inline void _dll_log_atexit_clearance(void) {
 #  define LIBDLL_INTERNAL_LOG_OUT_DELIMITER LIBDLL_LOG_OUT_DELIMITER
 
 #else
+#  define LIBDLL_INTERNAL_LOG_SEV(__sev, __fmt, ...)
 #  define LIBDLL_INTERNAL_LOG(__fmt, ...)
 
+#  define LIBDLL_INTERNAL_LOG_ENTRY_SEV(__sev, __fmt, ...)
 #  define LIBDLL_INTERNAL_LOG_ENTRY(__fmt, ...)
+
+#  define LIBDLL_INTERNAL_LOG_ENTRY_VOID_SEV(__sev)
 #  define LIBDLL_INTERNAL_LOG_ENTRY_VOID
 
+#  define LIBDLL_INTERNAL_LOG_OUT_SEV(__sev, __fmt, ...)
 #  define LIBDLL_INTERNAL_LOG_OUT(__fmt, ...)
+
+#  define LIBDLL_INTERNAL_LOG_OUT_NULL_SEV(__sev)
 #  define LIBDLL_INTERNAL_LOG_OUT_NULL
+
+#  define LIBDLL_INTERNAL_LOG_OUT_VOID_SEV(__sev)
 #  define LIBDLL_INTERNAL_LOG_OUT_VOID
 
 #  define LIBDLL_INTERNAL_LOG_DLL_DESTRUCTOR_FMT(__destructor)

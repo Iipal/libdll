@@ -97,10 +97,10 @@ typedef void (*dll_callback_fn_t)(void * restrict obj_data);
  * don't allocate anything inside a \c data, but the \c data itself was allocated. \param
  * size a \c data size.
  */
-typedef struct s_dll_obj {
-  struct s_dll_obj * restrict next; /** a pointer to next list-object. */
-  struct s_dll_obj * restrict prev; /** a pointer to previous list-object. */
-  void * restrict data;             /** an any user defined data. */
+typedef struct _s_dll_obj {
+  struct _s_dll_obj * restrict next; /** a pointer to next list-object. */
+  struct _s_dll_obj * restrict prev; /** a pointer to previous list-object. */
+  void * restrict data;              /** an any user defined data. */
   dll_callback_fn_t
       destructor; /** callback-function to manually free anything inside \c data on
                   deleting the list-object. Notice: \c data itself will be freed
@@ -117,7 +117,7 @@ typedef struct s_dll_obj {
  * \param tail a tail of list.
  * \param objs_count a counter of list-objects in list.
  */
-typedef struct s_dll {
+typedef struct _s_dll {
   dll_obj_t * restrict head; /** a head of list. */
   dll_obj_t * restrict tail; /** a tail of list. */
   size_t objs_count;         /** a counter of list-objects in list. */
@@ -533,7 +533,7 @@ static inline dll_obj_t * dll_push_front(dll_t * restrict dll, dll_obj_t * restr
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -561,7 +561,7 @@ static inline dll_obj_t * dll_push_back(dll_t * restrict dll, dll_obj_t * restri
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -629,7 +629,7 @@ static inline void dll_pop_front(dll_t * restrict dll) {
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == dll->head)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -650,7 +650,7 @@ static inline void dll_pop_back(dll_t * restrict dll) {
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == dll->tail)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -672,7 +672,7 @@ static inline void dll_clear(dll_t * restrict dll) {
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -696,13 +696,13 @@ static inline dll_obj_t *
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (dll->objs_count < pos) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_WRN);
     return NULL;
   }
 
@@ -792,13 +792,13 @@ static inline dll_obj_t * dll_erase(dll_t * restrict dll, size_t pos_start, size
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (0 == dll->objs_count || dll->objs_count < pos_start || (end && pos_start > end)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_WRN);
     return NULL;
   }
 
@@ -826,7 +826,7 @@ static inline void dll_foreach(const dll_t * restrict dll, dll_callback_fn_t fn)
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -925,7 +925,7 @@ static inline void
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dst || NULL == src)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -965,13 +965,13 @@ static inline void dll_splice(dll_t * restrict dst,
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dst || NULL == src)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if ((src_end && src_start > src_end) || 0 == src->objs_count) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_WRN);
     return;
   }
 
@@ -1054,7 +1054,7 @@ static inline size_t dll_remove(dll_t * restrict dll,
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
     return 0;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -1100,7 +1100,7 @@ static inline void dll_reverse(dll_t * restrict dll) {
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(!dll)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -1125,7 +1125,7 @@ static inline size_t dll_unique(dll_t * restrict dll, dll_callback_cmp_fn_t fn_c
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
-    LIBDLL_LOG_OUT("%zu", 0);
+    LIBDLL_LOG_OUT_SEV(LIBDLL_LOG_SEV_ERR, "%zu", 0);
     return 0;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -1239,13 +1239,13 @@ static inline void dll_sort(dll_t * restrict dll, dll_callback_cmp_fn_t fn_sort)
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_sort)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (NULL == dll->head || NULL == dll->head->next) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_WRN);
     return;
   }
 
@@ -1274,13 +1274,13 @@ static inline bool dll_is_equal(const dll_t * restrict dll_a,
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll_a || NULL == dll_b)) {
-    LIBDLL_LOG_OUT("%s", "false");
+    LIBDLL_LOG_OUT_SEV(LIBDLL_LOG_SEV_ERR, "%s", "false");
     return false;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   if (dll_a->objs_count != dll_b->objs_count) {
-    LIBDLL_LOG_OUT("%s", "false");
+    LIBDLL_LOG_OUT_SEV(LIBDLL_LOG_SEV_WRN, "%s", "false");
     return false;
   }
 
@@ -1345,7 +1345,7 @@ static inline dll_obj_t * dll_unlink(dll_t * restrict dll, dll_obj_t * restrict 
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == obj)) {
-    LIBDLL_LOG_OUT_NULL;
+    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
     return NULL;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -1374,7 +1374,7 @@ static inline void dll_free_obj(dll_obj_t * restrict * restrict obj) {
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == obj || NULL == obj || NULL == *obj)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
@@ -1403,7 +1403,7 @@ static inline void dll_free(dll_t * restrict * restrict dll) {
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == *dll)) {
-    LIBDLL_LOG_OUT_VOID;
+    LIBDLL_LOG_OUT_VOID_SEV(LIBDLL_LOG_SEV_ERR);
     return;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
