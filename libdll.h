@@ -92,10 +92,11 @@ typedef void (*dll_callback_fn_t)(void * restrict obj_data);
  * \param prev a pointer to previous list-object.
  * \param data an any user defined data.
  * \param destructor callback-function to manually free anything inside \c data on
- * deleting the list-object. Notice: \c data itself will be freed automatically with \c
- * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
- * don't allocate anything inside a \c data, but the \c data itself was allocated. \param
- * size a \c data size.
+ * deleting the list-object. Notice: \c data itself will be freed automatically with
+ * \c free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if
+ * you don't allocate anything inside a \c data, but the \c data itself was allocated. By
+ * passing LIBDLL_DESTRUCTOR_NULL the \c destructor by itself will not be called in any
+ * way, and free(3) will not be applied to \c data as well
  */
 typedef struct _s_dll_obj {
   struct _s_dll_obj * restrict next; /** a pointer to next list-object. */
@@ -106,7 +107,9 @@ typedef struct _s_dll_obj {
                   deleting the list-object. Notice: \c data itself will be freed
                   automatically with \c free if a \c destructor function was specified.
                   Use \c LIBDLL_DESTRUCTOR_DEFAULT if you don't allocate anything inside a
-                  \c data, but the \c data itself was allocated.*/
+                  \c data, but the \c data itself was allocated. By passing
+                  LIBDLL_DESTRUCTOR_NULL the \c destructor by itself will not be called in
+                  any way, and free(3) will not be applied to \c data as well. */
   size_t size;    /** a \c data size. */
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_obj_t;
 
