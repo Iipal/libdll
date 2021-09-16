@@ -851,9 +851,10 @@ static inline void dll_foreach(const dll_t * restrict dll, dll_callback_fn_t fn)
   LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
 
   for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
-    LIBDLL_INTERNAL_LOG("callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) " )",
-                        fn,
-                        LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj));
+    LIBDLL_INTERNAL_LOG(
+        "callee fn: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) " )",
+        fn,
+        LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj));
     fn(iobj->data);
   }
 
@@ -1066,38 +1067,46 @@ static inline size_t dll_remove(dll_t * restrict dll,
                                 void * restrict value) {
   LIBDLL_LOG_ENTRY(LIBDLL_LOG_DLL_FMT(dll) ", fn_cmp: %p, value: %p",
                    LIBDLL_LOG_DLL_ARG(dll),
-
                    fn_cmp,
                    value);
 
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
-    LIBDLL_LOG_OUT_NULL_SEV(LIBDLL_LOG_SEV_ERR);
+    LIBDLL_LOG_OUT_SEV(LIBDLL_LOG_SEV_ERR, "%zu", 0);
     return 0;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
-
-  LIBDLL_LOG_OUT_DEPTH_INC;
 
   dll_obj_t * restrict iobj = dll->head;
   dll_obj_t * restrict save = NULL;
   size_t removed_objs       = 0;
 
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_INC;
+
   while (iobj) {
     save = iobj->next;
     LIBDLL_INTERNAL_LOG(
-        "callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) ", value: %p )",
+        "callee fn_cmp: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) ", value: %p )",
         fn_cmp,
         LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj),
         value);
-    if (!fn_cmp(iobj->data, value)) {
+
+    const ssize_t fn_cmp_ret = fn_cmp(iobj->data, value);
+
+    LIBDLL_INTERNAL_LOG("callee return %ld", fn_cmp_ret);
+
+    if (0 == fn_cmp_ret) {
+      LIBDLL_LOG_OUT_DEPTH_INC;
+
       dll_del(dll, iobj);
       ++removed_objs;
+
+      LIBDLL_LOG_OUT_DEPTH_DEC;
     }
     iobj = save;
   }
 
-  LIBDLL_LOG_OUT_DEPTH_DEC;
+  LIBDLL_INTERNAL_LOG_OUT_DEPTH_DEC;
   LIBDLL_LOG_OUT("%zu", removed_objs);
   return removed_objs;
 }
@@ -1164,11 +1173,17 @@ static inline void * dll_find(dll_t * restrict dll,
   dll_obj_t * restrict iobj;
   for (iobj = dll->head; iobj; iobj = iobj->next) {
     LIBDLL_INTERNAL_LOG(
-        "callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj) ", additional: %p )",
+        "callee fn_search_ret: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
+            iobj) ", additional: %p )",
         fn_search,
         LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj),
         additional);
-    if (!fn_search(iobj->data, additional)) {
+
+    const ssize_t fn_search_ret = fn_search(iobj->data, additional);
+
+    LIBDLL_INTERNAL_LOG("callee return %ld", fn_search_ret);
+
+    if (0 == fn_search_ret) {
       out = iobj->data;
       break;
     }
@@ -1236,12 +1251,17 @@ static inline dll_obj_t * __dlli_msort(dll_obj_t * restrict first,
 
   dll_obj_t * out = NULL;
 
-  LIBDLL_INTERNAL_LOG("callee: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
+  LIBDLL_INTERNAL_LOG("callee fn_sort: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
                           first) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(second) " )",
                       fn_sort,
                       LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(first),
                       LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(second));
-  if (0 > fn_sort(first->data, second->data)) {
+
+  const ssize_t fn_sort_ret = fn_sort(first->data, second->data);
+
+  LIBDLL_INTERNAL_LOG("callee return %ld", fn_sort_ret);
+
+  if (0 > fn_sort_ret) {
     first->next       = __dlli_msort(first->next, second, fn_sort);
     first->next->prev = first;
     first->prev       = NULL;
@@ -1350,7 +1370,18 @@ static inline bool dll_is_equal(const dll_t * restrict dll_a,
 
   for (; iobj_a && iobj_b; iobj_a = iobj_a->next, iobj_b = iobj_b->next) {
     if (fn_cmp) {
-      if (0 != fn_cmp(iobj_a->data, iobj_b->data)) {
+      LIBDLL_INTERNAL_LOG(
+          "callee fn_cmp: %p ( " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(
+              iobj_a) ", " LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_FMT(iobj_b) " )",
+          fn_cmp,
+          LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj_a),
+          LIBDLL_INTERNAL_LOG_DLL_OBJ_DATA_ARG(iobj_b));
+
+      const ssize_t fn_cmp_ret = fn_cmp(iobj_a->data, iobj_b->data);
+
+      LIBDLL_INTERNAL_LOG("callee return %ld", fn_cmp_ret);
+
+      if (0 != fn_cmp_ret) {
         LIBDLL_LOG_OUT("%s", "false");
         return false;
       }
