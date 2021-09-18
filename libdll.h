@@ -1117,10 +1117,10 @@ static inline void __dlli_memcpy(dll_obj_t * restrict dst, dll_obj_t * restrict 
       LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(dst),
       LIBDLL_INTERNAL_LOG_DLL_OBJ_ARG(src));
 
-  __u_char * restrict dst_ptr = (__u_char * restrict)dst;
-  __u_char * restrict src_ptr = (__u_char * restrict)src;
-  const size_t offsetnp       = offsetof(dll_obj_t, data);
-  const size_t sizecopy       = sizeof(*dst) - offsetnp;
+  unsigned char * restrict dst_ptr = (unsigned char * restrict)dst;
+  unsigned char * restrict src_ptr = (unsigned char * restrict)src;
+  const size_t offsetnp            = offsetof(dll_obj_t, data);
+  const size_t sizecopy            = sizeof(*dst) - offsetnp;
 
   memcpy(dst_ptr + offsetnp, src_ptr + offsetnp, sizecopy);
 

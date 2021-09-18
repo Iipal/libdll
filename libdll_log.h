@@ -195,7 +195,7 @@ static inline void dll_log_src_filename_set(const char * filename) {
 
 static inline void dll_log_file_open() {
   char timestamp_buff[128];
-  char logfilename_buff[128];
+  char logfilename_buff[256];
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
