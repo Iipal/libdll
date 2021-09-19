@@ -378,6 +378,20 @@ static inline size_t
 static inline void dll_reverse(dll_t * restrict dll);
 
 /**
+ * \brief Search for specific \c data via \c fn_search when it returns zero value.
+ *
+ * \param dll search list
+ * \param fn_search function which will deside is \c data is valid
+ * \param additional an additional data that will be passed to the second argument of \c
+ * fn_search if it's needed
+ *
+ * \return first occurrence of searched data in list \a dll, NULL otherwise.
+ */
+static inline void * dll_find(dll_t * restrict dll,
+                              dll_callback_cmp_fn_t fn_search,
+                              void * restrict additional);
+
+/**
  * \brief Removes all consecutive duplicate list-objects from the list.
  *  Only the first list-object in each group of equal list-objects is left.
  *  list-objects compares via \a fn_cmp and only if \a fn_cmp returns zero means the
@@ -887,6 +901,28 @@ static inline void dll_reverse(dll_t * restrict dll) {
     __dlli_memcpy(ifirst, ilast);
     __dlli_memcpy(ilast, &temp);
   }
+}
+
+static inline void * dll_find(dll_t * restrict dll,
+                              dll_callback_cmp_fn_t fn_search,
+                              void * restrict additional) {
+#ifndef LIBDLL_UNSAFE_USAGE
+  if (__dll_unlikely(NULL == dll || NULL == fn_search)) {
+    return NULL;
+  }
+#endif /* LIBDLL_UNSAFE_USAGE */
+
+  void * restrict out = NULL;
+
+  for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
+    const ssize_t fn_search_ret = fn_search(iobj->data, additional);
+    if (0 == fn_search_ret) {
+      out = iobj->data;
+      break;
+    }
+  }
+
+  return out;
 }
 
 static inline size_t dll_unique(dll_t * restrict dll, dll_callback_cmp_fn_t fn_cmp) {
