@@ -43,16 +43,16 @@
 #endif /* LIBDLL_UNSAFE_USAGE */
 
 /**
- * \brief Use this macros as \c fn_free argument for \c dll_new_obj if you don't allocate
- * anything inside a \c data, but the \c data itself was allocated.
+ * \brief Use this macros as \c destructor argument for \c dll_new_obj if you don't
+ * allocate anything inside a \c data, but the \c data itself was allocated.
  */
-#define LIBDLL_FN_FREE_CLEARANCE ((dll_callback_fn_t)-0x1UL)
+#define LIBDLL_DESTRUCTOR_DEFAULT ((dll_callback_fn_t)-0x1UL)
 
 /**
- * \brief Use this macros as \c fn_free argument for \c dll_new_obj if you don't need to
- * free any memory in lists.
+ * \brief Use this macros as \c destructor argument for \c dll_new_obj if you don't need
+ * to free any memory in lists.
  */
-#define LIBDLL_FN_FREE_NULL ((dll_callback_fn_t)NULL)
+#define LIBDLL_DESTRUCTOR_NULL ((dll_callback_fn_t)NULL)
 
 /**
  * ----------------------------
@@ -85,23 +85,23 @@ typedef void (*dll_callback_fn_t)(void * restrict obj_data);
  * \param next a pointer to next list-object.
  * \param prev a pointer to previous list-object.
  * \param data an any user defined data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated. \param
- * data_size a \c data size.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param size a \c data size.
  */
 typedef struct s_dll_obj {
   struct s_dll_obj * restrict next; /** a pointer to next list-object. */
   struct s_dll_obj * restrict prev; /** a pointer to previous list-object. */
   void * restrict data;             /** an any user defined data. */
   dll_callback_fn_t
-      fn_free; /** callback-function to manually free anything inside \c data on deleting
-                  the list-object. Notice: \c data itself will be freed automatically with
-                  \c free if a \c fn_free function was specified. Use \c
-                  LIBDLL_FN_FREE_CLEARANCE if you don't allocate anything inside a \c
-                  data, but the \c data itself was allocated.*/
-  size_t data_size; /** a \c data size. */
+      destructor; /** callback-function to manually free anything inside \c data on
+                  deleting the list-object. Notice: \c data itself will be freed
+                  automatically with \c free if a \c destructor function was specified.
+                  Use \c LIBDLL_DESTRUCTOR_DEFAULT if you don't allocate anything inside
+                  a \c data, but the \c data itself was allocated.*/
+  size_t size;    /** a \c data size. */
 } __attribute__((aligned(__BIGGEST_ALIGNMENT__))) dll_obj_t;
 
 /**
@@ -132,19 +132,19 @@ static inline dll_t * dll_init(void);
 
 /**
  * \brief Creating a new list-object from given parameters.
- * Strongly recomended to setup \c fn_free if you allocate memory inside \c data.
+ * Strongly recommended to setup \c destructor if you allocate memory inside \c data.
  *
  * \param data any data you want to put inside of list.
- * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param size a size of \c data.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with
+ * \c free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if
+ * you don't allocate anything inside a \c data, but the \c data itself was allocated.
  *
  * \return a new created object.
  */
 static inline dll_obj_t *
-    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t fn_free);
+    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t destructor);
 
 /**
  * \brief Push a \c list-object to front of given \c list.
@@ -173,17 +173,17 @@ static inline dll_obj_t * dll_push_back(dll_t * restrict dll, dll_obj_t * restri
  * \param dll destination list.
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated.
  *
  * \return a new created list-object.
  */
 static inline dll_obj_t * dll_emplace_front(dll_t * restrict dll,
                                             void * restrict data,
                                             size_t            size,
-                                            dll_callback_fn_t fn_free);
+                                            dll_callback_fn_t destructor);
 
 /**
  * \brief Creating a new list-object via \c dll_new_obj and pushing it in end of list \c
@@ -192,17 +192,17 @@ static inline dll_obj_t * dll_emplace_front(dll_t * restrict dll,
  * \param dll destination list.
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated.
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated.
  *
  * \return a new created list-object.
  */
 static inline dll_obj_t * dll_emplace_back(dll_t * restrict dll,
                                            void * restrict data,
                                            size_t            size,
-                                           dll_callback_fn_t fn_free);
+                                           dll_callback_fn_t destructor);
 
 /**
  * \brief Removes the first list-object of the list.
@@ -221,8 +221,8 @@ static inline void dll_pop_back(dll_t * restrict dll);
 /**
  * \brief Erases all elements from the \c dll list. After this call, \c dll_size returns
  * zero. Any pointers referring to contained elements can be invalid if you specified a \c
- * fn_free callback-function for each individual list-object. Also lost memory leaks
- * errors can occur as well if you don't specified a \c fn_free function for each
+ * destructor callback-function for each individual list-object. Also lost memory leaks
+ * errors can occur as well if you don't specified a \c destructor function for each
  * individual list-object but memory inside of this list-object was allocated.
  *
  * \param dll list to be cleared.
@@ -249,18 +249,19 @@ static inline dll_obj_t *
  * \param dll list in which list-object will be inserted.
  * \param data any data you want to put inside of list.
  * \param size size of \c data.
- * \param fn_free callback-function to manually free anything inside \c data on deleting
- * the list-object. Notice: \c data itself will be freed automatically with \c free if a
- * \c fn_free function was specified. Use \c LIBDLL_FN_FREE_CLEARANCE if you don't
- * allocate anything inside a \c data, but the \c data itself was allocated. \param pos
- * position in list on which list-object will be inserted(starts from 0 to \c dll_size).
+ * \param destructor callback-function to manually free anything inside \c data on
+ * deleting the list-object. Notice: \c data itself will be freed automatically with \c
+ * free if a \c destructor function was specified. Use \c LIBDLL_DESTRUCTOR_DEFAULT if you
+ * don't allocate anything inside a \c data, but the \c data itself was allocated. \param
+ * pos position in list on which list-object will be inserted(starts from 0 to \c
+ * dll_size).
  *
  * \return inserted list-object or NULL if something is wrong.
  */
 static inline dll_obj_t * dll_emplace(dll_t * restrict dll,
                                       void * restrict data,
                                       size_t            size,
-                                      dll_callback_fn_t fn_free,
+                                      dll_callback_fn_t destructor,
                                       size_t            pos);
 
 /**
@@ -491,7 +492,7 @@ static inline dll_t * dll_init(void) {
 }
 
 static inline dll_obj_t *
-    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t fn_free) {
+    dll_new_obj(void * restrict data, size_t size, dll_callback_fn_t destructor) {
   dll_obj_t * restrict out = NULL;
 
 #ifndef LIBDLL_UNSAFE_USAGE
@@ -502,9 +503,9 @@ static inline dll_obj_t *
   out = calloc(1, sizeof(*out));
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  out->data      = data;
-  out->data_size = size;
-  out->fn_free   = fn_free;
+  out->data       = data;
+  out->size       = size;
+  out->destructor = destructor;
   return out;
 }
 
@@ -553,16 +554,16 @@ static inline dll_obj_t * dll_push_back(dll_t * restrict dll, dll_obj_t * restri
 static inline dll_obj_t * dll_emplace_front(dll_t * restrict dll,
                                             void * restrict data,
                                             size_t            size,
-                                            dll_callback_fn_t fn_free) {
-  dll_obj_t * restrict new_obj = dll_new_obj(data, size, fn_free);
+                                            dll_callback_fn_t destructor) {
+  dll_obj_t * restrict new_obj = dll_new_obj(data, size, destructor);
   return dll_push_front(dll, new_obj);
 }
 
 static inline dll_obj_t * dll_emplace_back(dll_t * restrict dll,
                                            void * restrict data,
                                            size_t            size,
-                                           dll_callback_fn_t fn_free) {
-  dll_obj_t * restrict new_obj = dll_new_obj(data, size, fn_free);
+                                           dll_callback_fn_t destructor) {
+  dll_obj_t * restrict new_obj = dll_new_obj(data, size, destructor);
   return dll_push_back(dll, new_obj);
 }
 
@@ -617,7 +618,7 @@ static inline dll_obj_t *
   }
 
   if (NULL == dll->head || 0 == pos) {
-    return dll_emplace_front(dll, obj->data, obj->data_size, obj->fn_free);
+    return dll_emplace_front(dll, obj->data, obj->size, obj->destructor);
   } else {
     dll_obj_t * restrict iter = dll->head;
 
@@ -641,9 +642,9 @@ static inline dll_obj_t *
 static inline dll_obj_t * dll_emplace(dll_t * restrict dll,
                                       void * restrict data,
                                       size_t            size,
-                                      dll_callback_fn_t fn_free,
+                                      dll_callback_fn_t destructor,
                                       size_t            pos) {
-  dll_obj_t * restrict new_obj = dll_new_obj(data, size, fn_free);
+  dll_obj_t * restrict new_obj = dll_new_obj(data, size, destructor);
   return dll_insert(dll, new_obj, pos);
 }
 
@@ -754,7 +755,7 @@ static inline void
   dll_obj_t * restrict save = NULL;
 
   while (iobj) {
-    dll_emplace_back(dst, iobj->data, iobj->data_size, iobj->fn_free);
+    dll_emplace_back(dst, iobj->data, iobj->size, iobj->destructor);
     save = iobj->next;
     dll_del(src, iobj);
     iobj = save;
@@ -1002,7 +1003,7 @@ static inline bool dll_is_equal(const dll_t * restrict dll_a,
         return false;
       }
     } else {
-      if (iobj_a->data_size != iobj_b->data_size || iobj_a->data != iobj_b->data) {
+      if (iobj_a->size != iobj_b->size || iobj_a->data != iobj_b->data) {
         return false;
       }
     }
@@ -1052,11 +1053,11 @@ static inline void dll_free_obj(dll_obj_t * restrict * restrict obj) {
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  if ((*obj)->fn_free) {
-    if (LIBDLL_FN_FREE_CLEARANCE != (*obj)->fn_free) {
-      (*obj)->fn_free((*obj)->data);
+  if ((*obj)->destructor) {
+    if (LIBDLL_DESTRUCTOR_DEFAULT != (*obj)->destructor) {
+      (*obj)->destructor((*obj)->data);
     }
-    if (LIBDLL_FN_FREE_NULL != (*obj)->data) {
+    if (LIBDLL_DESTRUCTOR_NULL != (*obj)->data) {
       free((*obj)->data);
     }
   }
