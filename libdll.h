@@ -32,11 +32,6 @@
  * ----------------------------
  */
 
-/*
- * Define LIBDLL_DEBUG_INFO before libdll.h include to make logger macroses work.
- */
-#include "libdll_log.h"
-
 #ifdef LIBDLL_UNSAFE_USAGE
 #  undef LIBDLL_UNSAFE_USAGE
 
@@ -59,6 +54,11 @@
  * to free any memory in lists.
  */
 #define LIBDLL_DESTRUCTOR_NULL ((dll_callback_fn_t)NULL)
+
+/*
+ * Define LIBDLL_LOGGER before libdll.h include to make logger macroses work.
+ */
+#include "libdll_log.h"
 
 /**
  * ----------------------------

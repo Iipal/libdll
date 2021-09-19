@@ -38,9 +38,9 @@
 #  include <sys/types.h>
 #  include <time.h>
 
-#  if !defined(LIBDLL_DESTRUCTOR_DEFAULT) && !defined(LIBDLL_DESTRUCTOR_NULL)
+#  if !defined(LIBDLL_H)
 #    include "libdll.h"
-#  endif /* !defined(LIBDLL_DESTRUCTOR_DEFAULT) && !defined(LIBDLL_DESTRUCTOR_NULL)) */
+#  endif /* !defined(LIBDLL_H) */
 
 /**
  * ---------------------------------------
