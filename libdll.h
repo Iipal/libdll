@@ -359,16 +359,17 @@ static inline void dll_splice(dll_t * restrict dst,
 
 /**
  * \brief Removes all list-objects satisfying specific criteria \a value via \a fn_cmp
- * from \a dll. Applies for all list-objects for which \a fn_cmp return a positive value.
+ * from \a dll. Applies for all list-objects for which \a fn_cmp return a zero value.
  *
  * \param dll list from which list-objects will be removed.
- * \param value any data to be compared with each list-object.
- * \param fn_cmp comparator for list-objects data and given \a value.
+ * \param fn_cmp comparator for list-objects data and given \a other.
+ * \param other any additional data to be given to the second argument of \c fn_cmp on
+ * comparison with each list-object.
  *
  * \return count of removed objects from list \a dll.
  */
 static inline size_t
-    dll_remove(dll_t * restrict dll, void * restrict value, dll_callback_cmp_fn_t fn_cmp);
+    dll_remove(dll_t * restrict dll, dll_callback_cmp_fn_t fn_cmp, void * restrict other);
 
 /**
  * \brief Reverses the order of the list-objects in the list.
@@ -855,24 +856,25 @@ static inline void dll_splice(dll_t * restrict dst,
 }
 
 static inline size_t dll_remove(dll_t * restrict dll,
-                                void * restrict value,
-                                dll_callback_cmp_fn_t fn_cmp) {
+                                dll_callback_cmp_fn_t fn_cmp,
+                                void * restrict other) {
 #ifndef LIBDLL_UNSAFE_USAGE
   if (__dll_unlikely(NULL == dll || NULL == fn_cmp)) {
     return 0;
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
-  dll_obj_t * restrict iobj = dll->head;
-  dll_obj_t * restrict save = NULL;
-  size_t removed_objs       = 0;
+  size_t removed_objs = 0;
 
-  while (iobj) {
-    save = iobj->next;
-    if (0 < fn_cmp(iobj->data, value)) {
+  for (dll_obj_t * restrict iobj = dll->head; iobj;) {
+    dll_obj_t * restrict save = iobj->next;
+
+    const fn_cmp_ret = fn_cmp(iobj->data, other);
+    if (0 == fn_cmp_ret) {
       dll_del(dll, iobj);
       ++removed_objs;
     }
+
     iobj = save;
   }
 
@@ -880,10 +882,10 @@ static inline size_t dll_remove(dll_t * restrict dll,
 }
 
 static inline void __dlli_memcpy(dll_obj_t * restrict a, dll_obj_t * restrict b) {
-  __u_char * restrict aptr = (__u_char * restrict)a;
-  __u_char * restrict bptr = (__u_char * restrict)b;
-  const size_t offsetnp    = offsetof(dll_obj_t, data);
-  const size_t sizecopy    = sizeof(*a) - offsetnp;
+  unsigned char * restrict aptr = (unsigned char * restrict)a;
+  unsigned char * restrict bptr = (unsigned char * restrict)b;
+  const size_t offsetnp         = offsetof(dll_obj_t, data);
+  const size_t sizecopy         = sizeof(*a) - offsetnp;
 
   memcpy(aptr + offsetnp, bptr + offsetnp, sizecopy);
 }
@@ -961,7 +963,8 @@ static inline dll_obj_t * __dlli_msort(dll_obj_t * restrict first,
     return first;
   }
 
-  if (0 > fn_sort(first->data, second->data)) {
+  const fn_sort_ret = fn_sort(first->data, second->data);
+  if (0 > fn_sort_ret) {
     first->next       = __dlli_msort(first->next, second, fn_sort);
     first->next->prev = first;
     first->prev       = NULL;
