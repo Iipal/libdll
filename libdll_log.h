@@ -119,9 +119,9 @@ static void _dll_log_atexit_clearance(void);
 
 #  define LIBDLL_LOG_BASE_FILENAME "libdll.debug"
 
-#  define LILIBDLL_LOG_SEV(__sev, __fmt, ...) \
+#  define LIBDLL_LOG_SEV(__sev, __fmt, ...) \
     dll_log(__sev, __FUNCTION__, __fmt, __VA_ARGS__)
-#  define LIBDLL_LOG(__fmt, ...) LILIBDLL_LOG_SEV(LIBDLL_LOG_SEV_INF, __fmt, __VA_ARGS__)
+#  define LIBDLL_LOG(__fmt, ...) LIBDLL_LOG_SEV(LIBDLL_LOG_SEV_INF, __fmt, __VA_ARGS__)
 
 #  define LIBDLL_LOG_ENTRY_SEV(__sev, __fmt, ...) \
     dll_log_method_entry(__sev, __FUNCTION__, __fmt, __VA_ARGS__)
@@ -425,7 +425,7 @@ static inline void _dll_log_atexit_clearance(void) {
 
 #  define LIBDLL_LOG_BASE_FILENAME
 
-#  define LILIBDLL_LOG_SEV(__sev, __fmt, ...)
+#  define LIBDLL_LOG_SEV(__sev, __fmt, ...)
 #  define LIBDLL_LOG(__fmt, ...)
 
 #  define LIBDLL_LOG_ENTRY_SEV(__sev, __fmt, ...)
@@ -469,7 +469,7 @@ static inline void _dll_log_atexit_clearance(void) {
 #if 1 == LIBDLL_LOGGER && 1 == LIBDLL_LOGGER_INTERNAL
 
 #  define LIBDLL_INTERNAL_LOG_SEV(__sev, __fmt, ...) \
-    LILIBDLL_LOG_SEV(__sev, __fmt, __VA_ARGS__)
+    LIBDLL_LOG_SEV(__sev, __fmt, __VA_ARGS__)
 #  define LIBDLL_INTERNAL_LOG(__fmt, ...) \
     LIBDLL_INTERNAL_LOG_SEV(LIBDLL_LOG_SEV_INT, __fmt, __VA_ARGS__)
 
