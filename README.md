@@ -7,8 +7,8 @@ If you need all of this, check [this](https://github.com/Iipal/libdll/tree/empty
 
 **Thanks and have fun =)**
 
-## DEBUG INFO BRANCH
-This is branch with debug logger added to cpp11-std-min branch. Follow the updated example bellow to test it.
+## LOGGER BRANCH
+This is branch with debug logger added to the master branch. Follow the updated example bellow to test it.
 Be ceraful, because it's header-only library - log file will be created for each file where was included and used libdll.h with LIBDLL_LOGGER enabled.
 
 ## Example
