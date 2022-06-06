@@ -10,8 +10,6 @@ If you need all of this, check [this](https://github.com/Iipal/libdll/tree/empty
 ## Example
 Simplest example with a few comments
 ```c
-#define LIBDLL_LOGGER // INCLUDE BEFORE "libdll.h" !!
-
 #include "libdll.h"
 
 char    *str = "just a str";
@@ -30,11 +28,6 @@ void    print_list_number_data(void *restrict obj_data) {
 }
 
 int     main(void) {
-    /**
-     * REQUIRED(!!!) before first call of any dll_* method in each file for creation of log-file, otherwise nothing will works.
-     */
-    dll_init_logger;
-
     dll_t   *list = dll_init();
 
     /**
