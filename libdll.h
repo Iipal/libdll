@@ -98,7 +98,8 @@
  * \return comparing result value.
  */
 typedef ssize_t (*dll_callback_comparator_fn_t)(void * restrict obj_data,
-                                                void * restrict other);
+                                                void * restrict other,
+                                                size_t index);
 
 /**
  * A destructor callback typedef for list-object desctructor function.
@@ -498,7 +499,7 @@ __dll_inline bool dll_merge(dll_t * restrict dst,
  * transefered to \p dst .
  * \param src_end end position of transfering from \p src list.
  *
- * \exception If \c dst_pos, \c src_start, and \c src_end are zero, OR if \p dst_pos and
+ * \exception If \c dst_pos , \c src_start , and \c src_end are zero, OR if \p dst_pos and
  * \p src_start at the end of lists \p dst and \p src when \p src_end is 0 - then
  * \p src will be merged at the end of \p dst via #dll_merge .
  *
@@ -772,7 +773,7 @@ __dll_inline dll_obj_t * dll_pop_back(dll_t * restrict dll) {
 
   dll_obj_t * restrict tail = dll->tail;
 
-  dll->tail = tail->next;
+  dll->tail = tail->prev;
 
   dll_obj_t * restrict __ret = dll_unlink(dll, tail);
 
@@ -916,8 +917,10 @@ __dll_inline bool dll_foreach(const dll_t * restrict dll,
   }
 #endif /* LIBDLL_UNSAFE_USAGE */
 
+  size_t i = 0;
+
   for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
-    fn(iobj->data, any);
+    fn(iobj->data, any, i++);
   }
 
   return true;
@@ -1192,11 +1195,12 @@ __dll_inline size_t dll_remove(dll_t * restrict dll,
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   size_t removed_objs = 0;
+  size_t i            = 0;
 
   for (dll_obj_t * restrict iobj = dll->head; iobj;) {
     dll_obj_t * restrict save = iobj->next;
 
-    const size_t fn_cmp_ret = fn_cmp(iobj->data, other);
+    const size_t fn_cmp_ret = fn_cmp(iobj->data, other, i++);
     if (0 == fn_cmp_ret) {
 #ifndef LIBDLL_UNSAFE_USAGE
       if (false == dll_delete(dll, iobj)) {
@@ -1260,10 +1264,11 @@ __dll_inline void * dll_find(dll_t * restrict dll,
 #endif /* LIBDLL_UNSAFE_USAGE */
 
   void * restrict out = NULL;
+  size_t i            = 0;
 
   for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
-    const ssize_t fn_search_ret = fn_search(iobj->data, any);
-    if (0 == fn_search_ret) {
+    const bool fn_search_ret = fn_search(iobj->data, any, i++);
+    if (fn_search_ret) {
       out = iobj->data;
       break;
     }
@@ -1310,12 +1315,15 @@ __dll_inline size_t dll_unique(dll_t * restrict dll,
   dll_obj_t * restrict jobj = NULL;
   dll_obj_t * restrict save = NULL;
   size_t removed_objs       = 0;
+  size_t i                  = 0;
 
   for (dll_obj_t * restrict iobj = dll->head; iobj; iobj = iobj->next) {
     jobj = iobj->next;
+
     while (jobj) {
       save = jobj->next;
-      if (0 == fn_cmp(iobj->data, jobj->data)) {
+
+      if (0 == fn_cmp(iobj->data, jobj->data, i)) {
 #ifndef LIBDLL_UNSAFE_USAGE
         if (false == dll_delete(dll, jobj)) {
           return false;
@@ -1326,8 +1334,11 @@ __dll_inline size_t dll_unique(dll_t * restrict dll,
 
         ++removed_objs;
       }
+
       jobj = save;
     }
+
+    ++i;
   }
 
   return removed_objs;
@@ -1343,7 +1354,7 @@ __dll_inline dll_obj_t * __dlli_msort(dll_obj_t * restrict first,
     return first;
   }
 
-  const ssize_t fn_sort_ret = fn_sort(first->data, second->data);
+  const ssize_t fn_sort_ret = fn_sort(first->data, second->data, ~0UL);
   if (0 > fn_sort_ret) {
     first->next       = __dlli_msort(first->next, second, fn_sort);
     first->next->prev = first;
@@ -1422,10 +1433,11 @@ __dll_inline bool dll_is_equal(const dll_t * restrict const dll_a,
 
   dll_obj_t * restrict iobj_a = dll_a->head;
   dll_obj_t * restrict iobj_b = dll_b->head;
+  size_t i                    = 0;
 
   for (; iobj_a && iobj_b; iobj_a = iobj_a->next, iobj_b = iobj_b->next) {
     if (fn_cmp) {
-      if (0 != fn_cmp(iobj_a->data, iobj_b->data)) {
+      if (0 != fn_cmp(iobj_a->data, iobj_b->data, i++)) {
         return false;
       }
     } else {
